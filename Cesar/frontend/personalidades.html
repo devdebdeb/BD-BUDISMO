@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personalidades Budistas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #499a6e;
+      --secondary-color: #3a7a5a;
+      --bg-light: #f8f9fa;
+      --text-dark: #333;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--bg-light);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 20px;
+    }
+    .filtro-container {
+      margin-bottom: 20px;
+    }
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .filtros input, .filtros select {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .tabela-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    tr:hover {
+      background: #f1f1f1;
+    }
+    .detalhes-btn {
+      background: var(--primary-color);
+      color: #fff;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .detalhes-btn:hover {
+      background: var(--secondary-color);
+    }
+    .loading {
+      text-align: center;
+      margin-top: 20px;
+      color: var(--text-dark);
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+      gap: 10px;
+    }
+    .pagination button {
+      padding: 8px 12px;
+      min-width: 40px;
+    }
+    .pagination button.active {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+    }
+  </style>
+</head>
+</head>
+<body>
+  <div class="container">
+    <h1>Personalidades Budistas Latino-Americanas</h1>
+    <div class="filtro-container">
+      <div class="filtros">
+        <input type="text" id="nome" list="nomes" placeholder="Buscar por nome" oninput="filtrarPersonalidades()" />
+        <datalist id="nomes"></datalist>
+        <input type="text" id="pais" list="paises" placeholder="Filtrar por país" oninput="filtrarPersonalidades()" />
+        <datalist id="paises"></datalist>
+        <select id="genero" onchange="filtrarPersonalidades()">
+          <option value="">Todos os gêneros</option>
+          <option value="Masculino">Masculino</option>
+          <option value="Feminino">Feminino</option>
+          <option value="Não-binário">Não-binário</option>
+        </select>
+      </div>
+    </div>
+    <div class="tabela-container">
+      <table id="tabela-personalidades">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>País de Origem</th>
+            <th>Nível</th>
+            <th>Gênero</th>
+            <th>Detalhes</th>
+          </tr>
+        </thead>
+        <tbody id="personalidades-body"></tbody>
+      </table>
+      <div class="loading" id="loading">Carregando dados...</div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+  <script>
+    let cachePersonalidades = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
+    const columnTranslations = {
+      'NOME_PERSONALIDADE': 'Nome',
+      'PAIS_ORIGEM_PERSONALIDADE': 'País de Origem',
+      'NIVEL': 'Nível',
+      'GENERO': 'Gênero'
+    };
+
+    function removeAccents(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    window.onload = async () => {
+      document.getElementById('loading').style.display = 'block';
+      try {
+        if (cachePersonalidades.length === 0) {
+          const resp = await fetch("http://localhost:5000/api/personalidades");
+          if (!resp.ok) throw new Error('Erro na resposta da API');
+          const dados = await resp.json();
+          cachePersonalidades = dados.data || [];
+          popularDatalists(cachePersonalidades);
+        }
+        filtrarPersonalidades();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    };
+
+    function popularDatalists(personalidades) {
+      const nomesSet = new Set();
+      const paisesSet = new Set();
+      personalidades.forEach(p => {
+        if (p.NOME_PERSONALIDADE) {
+          nomesSet.add(p.NOME_PERSONALIDADE);
+        }
+        if (p.PAIS_ORIGEM_PERSONALIDADE) {
+          paisesSet.add(p.PAIS_ORIGEM_PERSONALIDADE);
+        }
+      });
+      document.getElementById('nomes').innerHTML = [...nomesSet].sort().map(n => `<option value="${n}">`).join('');
+      document.getElementById('paises').innerHTML = [...paisesSet].sort().map(p => `<option value="${p}">`).join('');
+    }
+
+    function filtrarPersonalidades(page = 1) {
+      currentPage = page;
+      const nomeInput = removeAccents(document.getElementById('nome').value).toLowerCase();
+      const paisInput = removeAccents(document.getElementById('pais').value).toLowerCase();
+      const genero = document.getElementById('genero').value;
+
+      const filtrados = cachePersonalidades.filter(p => {
+        const nome = p.NOME_PERSONALIDADE ? removeAccents(p.NOME_PERSONALIDADE).toLowerCase() : '';
+        const pais = p.PAIS_ORIGEM_PERSONALIDADE ? removeAccents(p.PAIS_ORIGEM_PERSONALIDADE).toLowerCase() : '';
+        const matchNome = nome.includes(nomeInput);
+        const matchPais = pais.includes(paisInput);
+        const matchGenero = !genero || p.GENERO === genero;
+        return (!nomeInput || matchNome) && (!paisInput || matchPais) && matchGenero;
+      });
+      exibirPersonalidades(filtrados, currentPage);
+      setupPaginacao(filtrados.length, currentPage);
+    }
+
+    function exibirPersonalidades(personalidades, page = 1) {
+      const tbody = document.getElementById('personalidades-body');
+      tbody.innerHTML = '';
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const pagina = personalidades.slice(start, end);
+      pagina.forEach(p => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${p.NOME_PERSONALIDADE || 'Sem nome'}</td>
+            <td>${p.PAIS_ORIGEM_PERSONALIDADE || 'N/A'}</td>
+            <td>${p.NIVEL || 'N/A'}</td>
+            <td>${p.GENERO || 'N/A'}</td>
+            <td>
+              <a class="detalhes-btn" href="detalhes.html?id=${p.ID_PERSONALIDADE}&type=personalidade">Ver mais</a>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function setupPaginacao(totalItems, page) {
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
+      const pagDiv = document.getElementById('pagination');
+      pagDiv.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        pagDiv.innerHTML += `
+          <button onclick="filtrarPersonalidades(${i})" ${i === page ? 'class="active"' : ''}>${i}</button>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

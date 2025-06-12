@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produtos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #499a6e;
+      margin-bottom: 20px;
+    }
+    .filtros {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filtros input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: #499a6e;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .loading {
+      text-align: center;
+      margin-top: 20px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Produtos</h1>
+    <div class="filtros">
+      <input type="text" id="nomeInput" placeholder="Filtrar por nome do produto" oninput="filtrarProdutos()" />
+      <input type="text" id="tipoInput" placeholder="Filtrar por tipo de produto" oninput="filtrarProdutos()" />
+    </div>
+    <table id="tabela-produtos">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>Lançamento</th>
+        </tr>
+      </thead>
+      <tbody id="produtos-body"></tbody>
+    </table>
+    <div class="loading" id="loading">Carregando produtos...</div>
+  </div>
+
+  <script>
+    let produtos = [];
+
+    async function carregarProdutos() {
+      try {
+        const resposta = await fetch("http://localhost:5000/api/produtos");
+        const dados = await resposta.json();
+        produtos = dados.data || [];
+        filtrarProdutos();
+      } catch (error) {
+        document.getElementById("loading").innerText = "Erro ao carregar produtos.";
+        console.error(error);
+      }
+    }
+
+    function filtrarProdutos() {
+      const nome = document.getElementById("nomeInput").value.toLowerCase();
+      const tipo = document.getElementById("tipoInput").value.toLowerCase();
+      const tbody = document.getElementById("produtos-body");
+      tbody.innerHTML = "";
+
+      const filtrados = produtos.filter(p => {
+        const nomeOk = !nome || (p.NOME_PRODUTO && p.NOME_PRODUTO.toLowerCase().includes(nome));
+        const tipoOk = !tipo || (p.TIPO_PRODUTO && p.TIPO_PRODUTO.toLowerCase().includes(tipo));
+        return nomeOk && tipoOk;
+      });
+
+      if (filtrados.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='3'>Nenhum produto encontrado.</td></tr>";
+      } else {
+        filtrados.forEach(p => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${p.NOME_PRODUTO || "N/A"}</td>
+              <td>${p.TIPO_PRODUTO || "N/A"}</td>
+              <td>${p.DATA_LANCAMENTO || "N/A"}</td>
+            </tr>
+          `;
+        });
+      }
+
+      document.getElementById("loading").style.display = "none";
+    }
+
+    window.onload = carregarProdutos;
+  </script>
+</body>
+</html>

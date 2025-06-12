@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Templos Budistas - América Latina</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #499a6e;
+      --secondary-color: #3a7a5a;
+      --bg-light: #f8f9fa;
+      --text-dark: #333;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--bg-light);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 20px;
+    }
+    .filtro-container {
+      margin-bottom: 20px;
+    }
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .filtros input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .tabela-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    tr:hover {
+      background: #f1f1f1;
+    }
+    .detalhes-btn {
+      background: var(--primary-color);
+      color: #fff;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .detalhes-btn:hover {
+      background: var(--secondary-color);
+    }
+    .loading {
+      text-align: center;
+      margin-top: 20px;
+      color: var(--text-dark);
+    }
+  </style>
+</head>
+<body>
+    <div class="container">
+      <h1>Templos Budistas Latino-Americanos</h1>
+      <div class="filtro-container">
+        <div class="filtros">
+          <input type="text" id="nome" list="nomes" placeholder="Buscar por nome" oninput="filtrarTemplos()" />
+          <datalist id="nomes"></datalist>
+          <input type="text" id="pais" list="paises" placeholder="Filtrar por país" oninput="filtrarTemplos()" />
+          <datalist id="paises"></datalist>
+          <input type="text" id="escola" list="escolas" placeholder="Filtrar por escola" oninput="filtrarTemplos()" />
+          <datalist id="escolas"></datalist>
+        </div>
+      </div>
+      <div class="tabela-container">
+        <table id="templos">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>País</th>
+              <th>Escola</th>
+              <th>Abertura</th>
+              <th>Público</th>
+              <th>Detalhes</th>
+            </tr>
+          </thead>
+          <tbody id="templos-body"></tbody>
+        </table>
+        <div class="loading" id="loading">Carregando dados...</div>
+      </div>
+    </div>
+    <script>
+      let cacheTemplosTodos = [];
+  
+      const schoolTranslations = {
+        'T': 'Theravada',
+        'M': 'Mahayana',
+        'Et': 'Étnico chinês/taiwanês',
+        'Ch': 'Chan',
+        'Fo': 'Fo Guang Shan',
+        'Co': 'Coreano',
+        'Sh': 'Shin',
+        'Sg': 'Shingon',
+        'Td': 'Tendai',
+        'Ni': 'Nichiren-shu',
+        'N2': 'Ramos do espectro Nichiren',
+        'SG': 'Soka Gakkai',
+        'Zn': 'Zen',
+        'Vi': 'Vietnamita',
+        'Vaj': 'Vajrayana',
+        'Bö': 'Bön (budismo tibetano)',
+        'Ny': 'Nyingma',
+        'Kg': 'Kagyu',
+        'Sk': 'Sakya',
+        'Gg': 'Gelug',
+        'NK': 'New Kadampa',
+        'E': 'Budismo tibetano ecumênico',
+        'Ns': 'Não-sectário',
+        'Na': 'Associações budistas nacionais'
+      };
+  
+      function removeAccents(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+  
+      window.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('loading').style.display = 'block';
+        try {
+          const resposta = await fetch("http://localhost:5000/api/templos?all=true");
+          if (!resposta.ok) throw new Error('Erro na resposta da API');
+          const dados = await resposta.json();
+          cacheTemplosTodos = dados.data || [];
+          exibirTemplos(cacheTemplosTodos);
+          popularDatalists(cacheTemplosTodos);
+        } catch (erro) {
+          console.error(erro);
+          alert('Erro ao carregar dados dos templos');
+        } finally {
+          document.getElementById('loading').style.display = 'none';
+        }
+      });
+  
+      function filtrarTemplos() {
+        const nomeInput = removeAccents(document.getElementById('nome').value).toLowerCase();
+        const paisInput = removeAccents(document.getElementById('pais').value).toLowerCase();
+        const escolaInput = removeAccents(document.getElementById('escola').value).toLowerCase();
+  
+        const filtrados = cacheTemplosTodos.filter(templo => {
+          const temNome = templo.NOME ? removeAccents(templo.NOME).toLowerCase().includes(nomeInput) : false;
+          const temPais = templo.PAIS ? removeAccents(templo.PAIS).toLowerCase().includes(paisInput) : false;
+          const temEscola = templo.ESCOLA ? removeAccents(templo.ESCOLA).toLowerCase().includes(escolaInput) : false;
+          return (!nomeInput || temNome) && (!paisInput || temPais) && (!escolaInput || temEscola);
+        });
+        exibirTemplos(filtrados);
+      }
+  
+      function exibirTemplos(templos) {
+        const tbody = document.getElementById('templos-body');
+        tbody.innerHTML = '';
+        templos.forEach(templo => {
+          const escola = schoolTranslations[templo.ESCOLA] || templo.ESCOLA || 'N/A';
+          tbody.innerHTML += `
+            <tr>
+              <td>${templo.NOME || 'Sem nome'}</td>
+              <td>${templo.PAIS || 'N/A'}</td>
+              <td>${escola}</td>
+              <td>${templo.DATA_ABERTURA || 'N/A'}</td>
+              <td>${templo.PUBLICO_ALVO === 1 ? 'Étnico' : 'Conversão'}</td>
+              <td>
+                <a class="detalhes-btn" href="detalhes.html?id=${templo.ID_TEMPLO}&type=templo">Ver mais</a>
+              </td>
+            </tr>
+          `;
+        });
+      }
+  
+      function popularDatalists(templos) {
+        const nomesSet = new Set();
+        const paisSet = new Set();
+        const escolasSet = new Set();
+  
+        templos.forEach(t => {
+          if (t.NOME) nomesSet.add(t.NOME);
+          if (t.PAIS) paisSet.add(t.PAIS);
+          if (t.ESCOLA) escolasSet.add(schoolTranslations[t.ESCOLA] || t.ESCOLA);
+        });
+  
+        document.getElementById('nomes').innerHTML = [...nomesSet].sort().map(n => `<option value="${n}">`).join('');
+        document.getElementById('paises').innerHTML = [...paisSet].sort().map(p => `<option value="${p}">`).join('');
+        document.getElementById('escolas').innerHTML = [...escolasSet].sort().map(e => `<option value="${e}">`).join('');
+      }
+    </script>
+  </body>
+  </html>

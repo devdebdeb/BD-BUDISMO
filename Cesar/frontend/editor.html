@@ -1,0 +1,33 @@
+<!-- # editor.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel de Edição de Entidades</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    .btn { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; background: #499a6e; color: white; cursor: pointer; }
+    .btn:hover { background: #3a7a5a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Painel de Edição de Entidades</h2>
+    <button class="btn" onclick="window.location.href='editar_templo.html'">Editar Templos</button>
+    <button class="btn" onclick="window.location.href='personalidades.html'">Editar Personalidades</button>
+    <button class="btn" onclick="window.location.href='associacoes.html'">Editar Associações</button>
+    <button class="btn" onclick="window.location.href='produtos.html'">Editar Produtos</button>
+    <button class="btn" onclick="window.location.href='visualizacao.html'">Visualização</button>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>
