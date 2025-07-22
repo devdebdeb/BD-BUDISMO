@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 load_dotenv()
-
+print("--- SERVIDOR COM O CÓDIGO CORRIGIDO INICIADO ---")
 app = Flask(__name__)
 CORS(app)
 
@@ -33,26 +33,37 @@ def validate_params(params, allowed_params):
 
 
 #Rotas pra infos dos templos
+# SUBSTITUA A SUA FUNÇÃO get_templos POR ESTA:
+
+# DEPOIS (com a formatação de data)
+
 @app.route('/api/templos', methods=['GET'])
 def get_templos():
     conn = None
     cursor = None
+    page = 1
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
-        # Se o parâmetro all=true estiver presente, não limite a consulta
+        
         if request.args.get('all') == 'true':
-            cursor.execute("SELECT * FROM templo")
+            cursor.execute("SELECT * FROM templo ORDER BY NOME")
             templos = cursor.fetchall()
         else:
             page = int(request.args.get('page', 1))
             offset = (page - 1) * ITEMS_PER_PAGE
-            cursor.execute("SELECT * FROM templo LIMIT %s OFFSET %s", (ITEMS_PER_PAGE, offset))
+            cursor.execute("SELECT * FROM templo ORDER BY NOME LIMIT %s OFFSET %s", (ITEMS_PER_PAGE, offset))
             templos = cursor.fetchall()
-        # Formatar datas, se aplicável
-        for t in templos:
-            t['DATA_ABERTURA'] = format_date(t.get('DATA_ABERTURA'))
-            t['DATA_FECHAMENTO'] = format_date(t.get('DATA_FECHAMENTO'))
+            
+        # --- INÍCIO DA MELHORIA ---
+        # Formata as datas para o padrão AAAA-MM-DD
+        for templo in templos:
+            if templo.get('DATA_ABERTURA_TEMPLO'):
+                templo['DATA_ABERTURA_TEMPLO'] = templo['DATA_ABERTURA_TEMPLO'].strftime('%Y-%m-%d')
+            if templo.get('DATA_FECHAMENTO_TEMPLO'):
+                templo['DATA_FECHAMENTO_TEMPLO'] = templo['DATA_FECHAMENTO_TEMPLO'].strftime('%Y-%m-%d')
+        # --- FIM DA MELHORIA ---
+        
         return jsonify({
             "data": templos,
             "page": page if request.args.get('all') != 'true' else None,
@@ -271,6 +282,8 @@ def global_search():
         if conn: conn.close()
 
 #a parte do codigo que checa quais relacionamentos existem numa pagina
+# EM app.py - SUBSTITUA PELA VERSÃO COMPLETA E CORRIGIDA
+
 @app.route('/api/relations/<string:entity_type>/<int:entity_id>', methods=['GET'])
 def get_relations(entity_type, entity_id):
     conn = None
@@ -280,11 +293,12 @@ def get_relations(entity_type, entity_id):
         cursor = conn.cursor(dictionary=True)
         
         relations = {}
-        #relações dos templos
+        
+        # --- Relações quando a página de detalhes é de um TEMPLO ---
         if entity_type == 'templo':
-            # Personalidades
+            # Personalidades relacionadas ao Templo (COM A CORREÇÃO)
             cursor.execute("""
-                SELECT p.* FROM personalidade p
+                SELECT p.*, pt.FUNCAO FROM personalidade p
                 JOIN personalidade_templo pt ON p.ID_PERSONALIDADE = pt.ID_PT_PERSONALIDADE_FK
                 WHERE pt.ID_PT_TEMPLO_FK = %s
             """, [entity_id])
@@ -294,7 +308,7 @@ def get_relations(entity_type, entity_id):
                 p['DATA_MORTE'] = format_date(p.get('DATA_MORTE'))
             relations['personalidades'] = personalidades
             
-            # Associações
+            # Associações relacionadas ao Templo
             cursor.execute("""
                 SELECT a.* FROM associacao a
                 JOIN templo_associacao ta ON a.ID_ASSOCIACAO = ta.ID_TA_ASSOCIACAO_FK
@@ -306,21 +320,21 @@ def get_relations(entity_type, entity_id):
                 a['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(a.get('DATA_FECHAMENTO_ASSOCIACAO'))
             relations['associacoes'] = associacoes
             
-        #relações das personalidades    
+        # --- Relações quando a página de detalhes é de uma PERSONALIDADE ---
         elif entity_type == 'personalidade':
-            # Templos
+            # Templos relacionados à Personalidade (COM A CORREÇÃO)
             cursor.execute("""
-                SELECT t.* FROM templo t
+                SELECT t.*, pt.FUNCAO FROM templo t
                 JOIN personalidade_templo pt ON t.ID_TEMPLO = pt.ID_PT_TEMPLO_FK
                 WHERE pt.ID_PT_PERSONALIDADE_FK = %s
             """, [entity_id])
             templos = cursor.fetchall()
             for t in templos:
-                t['DATA_ABERTURA'] = format_date(t.get('DATA_ABERTURA'))
-                t['DATA_FECHAMENTO'] = format_date(t.get('DATA_FECHAMENTO'))
+                t['DATA_ABERTURA_TEMPLO'] = format_date(t.get('DATA_ABERTURA_TEMPLO'))
+                t['DATA_FECHAMENTO_TEMPLO'] = format_date(t.get('DATA_FECHAMENTO_TEMPLO'))
             relations['templos'] = templos
             
-            # Associações
+            # Associações relacionadas à Personalidade
             cursor.execute("""
                 SELECT a.* FROM associacao a
                 JOIN personalidade_associacao pa ON a.ID_ASSOCIACAO = pa.ID_PA_ASSOCIACAO_FK
@@ -332,9 +346,9 @@ def get_relations(entity_type, entity_id):
                 a['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(a.get('DATA_FECHAMENTO_ASSOCIACAO'))
             relations['associacoes'] = associacoes
 
-        #relações das associações    
+        # --- Relações quando a página de detalhes é de uma ASSOCIAÇÃO ---
         elif entity_type == 'associacao':
-            # Templos
+            # Templos relacionados à Associação
             cursor.execute("""
                 SELECT t.* FROM templo t
                 JOIN templo_associacao ta ON t.ID_TEMPLO = ta.ID_TA_TEMPLO_FK
@@ -342,13 +356,13 @@ def get_relations(entity_type, entity_id):
             """, [entity_id])
             templos = cursor.fetchall()
             for t in templos:
-                t['DATA_ABERTURA'] = format_date(t.get('DATA_ABERTURA'))
-                t['DATA_FECHAMENTO'] = format_date(t.get('DATA_FECHAMENTO'))
+                t['DATA_ABERTURA_TEMPLO'] = format_date(t.get('DATA_ABERTURA_TEMPLO'))
+                t['DATA_FECHAMENTO_TEMPLO'] = format_date(t.get('DATA_FECHAMENTO_TEMPLO'))
             relations['templos'] = templos
             
-            # Personalidades
+            # Personalidades relacionadas à Associação
             cursor.execute("""
-                SELECT p.* FROM personalidade p
+                SELECT p.*, pa.FUNCAO FROM personalidade p
                 JOIN personalidade_associacao pa ON p.ID_PERSONALIDADE = pa.ID_PA_PERSONALIDADE_FK
                 WHERE pa.ID_PA_ASSOCIACAO_FK = %s
             """, [entity_id])
@@ -518,21 +532,27 @@ def get_editor_data():
         if cursor: cursor.close()
         if conn: conn.close()
 
+# SUBSTITUA A SUA FUNÇÃO criar_templo POR ESTA:
+
 @app.route('/api/templos', methods=['POST'])
 def criar_templo():
     data = request.json
-    campos = ['NOME', 'PAIS', 'ESTADO', 'CIDADE', 'ESCOLA', 'DATA_ABERTURA', 'DATA_FECHAMENTO', 'CAMPO_INFO']
-
-    valores = [data.get(c) for c in campos]
+    
+    # Lista de campos COM OS NOMES CORRETOS do banco de dados
+    campos_bd = ['NOME', 'PAIS', 'ESTADO', 'ESCOLA', 'DATA_ABERTURA_TEMPLO', 'DATA_FECHAMENTO_TEMPLO', 'CAMPO_INFO_TEMPLO']
+    
+    # Pega os valores do JSON recebido
+    valores = [data.get(c) for c in campos_bd]
 
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-    INSERT INTO templo (NOME, PAIS, ESTADO, CIDADE, ESCOLA, DATA_ABERTURA, DATA_FECHAMENTO, CAMPO_INFO)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-""", valores)
-
+        # Query INSERT COM OS NOMES CORRETOS das colunas
+        query = """
+            INSERT INTO templo (NOME, PAIS, ESTADO, ESCOLA, DATA_ABERTURA_TEMPLO, DATA_FECHAMENTO_TEMPLO, CAMPO_INFO_TEMPLO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, valores)
         conn.commit()
         return jsonify({"message": "Templo criado com sucesso."}), 201
     except Exception as e:
@@ -542,15 +562,28 @@ def criar_templo():
         conn.close()
 
 
+
+# SUBSTITUA A SUA FUNÇÃO INTEIRA POR ESTA:
+
+# SUBSTITUA A SUA FUNÇÃO atualizar_templo POR ESTA:
+
 @app.route('/api/templos/<int:id_templo>', methods=['PUT'])
 def atualizar_templo(id_templo):
     data = request.json
     campos = []
     valores = []
-    for campo in ['NOME', 'PAIS', 'ESTADO', 'CIDADE', 'ESCOLA', 'DATA_ABERTURA', 'DATA_FECHAMENTO']:
+    
+    campos_validos = ['NOME', 'PAIS', 'ESTADO', 'ESCOLA', 
+                      'DATA_ABERTURA_TEMPLO', 'DATA_FECHAMENTO_TEMPLO', 'CAMPO_INFO_TEMPLO']
+    
+    for campo in campos_validos:
         if campo in data:
-            campos.append(f"{campo} = %s")
-            valores.append(data[campo])
+            valor = data[campo]
+            if "DATA" in campo and not valor:
+                valor = None
+            campos.append(f"`{campo}` = %s") # Adicionado backticks para segurança
+            valores.append(valor)
+
     if not campos:
         return jsonify({"error": "Nada para atualizar."}), 400
 
@@ -558,9 +591,8 @@ def atualizar_templo(id_templo):
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute(f"""
-            UPDATE templo SET {', '.join(campos)} WHERE ID_TEMPLO = %s
-        """, valores)
+        query = f"UPDATE templo SET {', '.join(campos)} WHERE ID_TEMPLO = %s"
+        cursor.execute(query, valores)
         conn.commit()
         return jsonify({"message": "Templo atualizado com sucesso."})
     except Exception as e:
@@ -583,12 +615,13 @@ def deletar_templo(id_templo):
         cursor.close()
         conn.close()
 
-#adicionar ou remover conexões dos templos
 
+
+# EM app.py - SUBSTITUA PELA VERSÃO DE DIAGNÓSTICO4
 @app.route('/api/relations/templo/<int:templo_id>', methods=['POST'])
 def adicionar_conexao_templo(templo_id):
     data = request.json
-    tipo = data.get('tipo')  # 'personalidade' ou 'associacao'
+    tipo = data.get('tipo')
     id_rel = data.get('id_rel')
 
     if tipo not in ['personalidade', 'associacao'] or not id_rel:
@@ -599,9 +632,22 @@ def adicionar_conexao_templo(templo_id):
 
     try:
         if tipo == 'personalidade':
-            cursor.execute("INSERT INTO personalidade_templo (ID_PT_PERSONALIDADE_FK, ID_PT_TEMPLO_FK) VALUES (%s, %s)", (id_rel, templo_id))
+            funcao_recebida = data.get('funcao')
+            
+            if funcao_recebida and funcao_recebida.strip():
+                valor_final_funcao = funcao_recebida
+            else:
+                valor_final_funcao = 'Não especificado'
+            
+            cursor.execute(
+                "INSERT INTO personalidade_templo (ID_PT_PERSONALIDADE_FK, ID_PT_TEMPLO_FK, FUNCAO) VALUES (%s, %s, %s)", 
+                (id_rel, templo_id, valor_final_funcao)
+            )
         else:
-            cursor.execute("INSERT INTO templo_associacao (ID_TA_ASSOCIACAO_FK, ID_TA_TEMPLO_FK) VALUES (%s, %s)", (id_rel, templo_id))
+            cursor.execute(
+                "INSERT INTO templo_associacao (ID_TA_ASSOCIACAO_FK, ID_TA_TEMPLO_FK) VALUES (%s, %s)",
+                (id_rel, templo_id)
+            )
 
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} adicionada com sucesso ao templo."})
@@ -611,6 +657,7 @@ def adicionar_conexao_templo(templo_id):
     finally:
         cursor.close()
         conn.close()
+
 
 @app.route('/api/relations/templo/<int:templo_id>', methods=['DELETE'])
 def remover_conexao_templo(templo_id):
@@ -639,5 +686,5 @@ def remover_conexao_templo(templo_id):
         conn.close()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': 
     app.run(debug=True)
