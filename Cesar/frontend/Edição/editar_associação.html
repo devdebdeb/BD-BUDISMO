@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Associações</title>
+  <style>
+    /* Estilos (sem alterações) */
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    h3 { color: #3a7a5a; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px;}
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .success, .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 10px;}
+    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; }
+    .related-card h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    .inline-group { display: flex; gap: 10px; align-items: flex-end; }
+    .inline-group > * { flex: 1; }
+    label { font-weight: bold; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Associações</h2>
+    <div class="section">
+      <h3>Editar ou Apagar Associação</h3>
+      <select id="entidadeSelect" onchange="carregarEntidade()"><option value="">Selecione uma associação</option></select>
+      <input type="text" id="edit_nome_associacao" placeholder="Nome da Associação" />
+      <input type="text" id="edit_grau" placeholder="Grau (ex: Internacional)" />
+      <input type="text" id="edit_pais_atuacao" placeholder="País de Atuação" />
+      <input type="text" id="edit_sede_associacao" placeholder="Sede da Associação" />
+      <label for="edit_data_abertura_associacao">Data de Abertura:</label>
+      <input type="date" id="edit_data_abertura_associacao" />
+      <label for="edit_data_fechamento_associacao">Data de Fechamento:</label>
+      <input type="date" id="edit_data_fechamento_associacao" />
+      <textarea id="edit_campo_info_associacao" placeholder="Informações da Associação"></textarea>
+      <button onclick="atualizarEntidade()">Atualizar Associação</button>
+      <button onclick="deletarEntidade()" style="background-color:#d9534f;">Apagar Associação</button>
+    </div>
+
+    <div class="section">
+        <h3>Templos Vinculados</h3>
+        <div id="templos" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_templo"><option>Carregando...</option></select>
+            <button onclick="buscarAdicionar('templo')">Adicionar Templo</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Personalidades Vinculadas</h3>
+        <div id="personalidades" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_personalidade"><option>Carregando...</option></select>
+            <button onclick="buscarAdicionar('personalidade')">Adicionar Personalidade</button>
+        </div>
+    </div>
+      
+    <div id="mensagem" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || !["moderador", "admin"].includes(usuario.tipo)) {
+      alert("Acesso negado.");
+      window.location.href = "login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    const entidade_tipo = 'associacao';
+    let entidades = [], templos = [], personalidades = [];
+    let entidade_id = null;
+
+    async function carregarTudo() {
+        await carregarEntidades();
+        // Carregar listas para dropdowns de relações
+        const resT = await fetch(`${baseUrl}/api/templos?all=true`);
+        const dataT = await resT.json();
+        templos = dataT.data || [];
+        const selectT = document.getElementById("busca_templo");
+        selectT.innerHTML = '<option value="">Selecione um templo</option>';
+        templos.forEach(t => { selectT.innerHTML += `<option value="${t.ID_TEMPLO}">${t.NOME}</option>`; });
+
+        const resP = await fetch(`${baseUrl}/api/personalidades?all=true`);
+        const dataP = await resP.json();
+        personalidades = dataP.data || [];
+        const selectP = document.getElementById("busca_personalidade");
+        selectP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => { selectP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`; });
+    }
+
+    async function carregarEntidades() {
+      try {
+        const res = await fetch(`${baseUrl}/api/associacoes?all=true`);
+        const data = await res.json();
+        entidades = data.data || [];
+        const select = document.getElementById("entidadeSelect");
+        select.innerHTML = '<option value="">Selecione uma associação</option>';
+        entidades.forEach(e => { select.innerHTML += `<option value="${e.ID_ASSOCIACAO}">${e.NOME_ASSOCIACAO} (ID: ${e.ID_ASSOCIACAO})</option>`; });
+      } catch(err) { exibirMensagem({ error: "Falha ao carregar associações." }); }
+    }
+
+    function limparFormulario() {
+        const ids = ["edit_nome_associacao", "edit_grau", "edit_pais_atuacao", "edit_sede_associacao", "edit_data_abertura_associacao", "edit_data_fechamento_associacao", "edit_campo_info_associacao"];
+        ids.forEach(id => document.getElementById(id).value = '');
+        document.getElementById('templos').innerHTML = '';
+        document.getElementById('personalidades').innerHTML = '';
+    }
+
+    async function carregarEntidade() {
+        entidade_id = document.getElementById("entidadeSelect").value;
+        if(!entidade_id) { limparFormulario(); return; }
+        const entidade = entidades.find(e => e.ID_ASSOCIACAO == entidade_id);
+        if(!entidade) return;
+        
+        document.getElementById("edit_nome_associacao").value = entidade.NOME_ASSOCIACAO || '';
+        document.getElementById("edit_grau").value = entidade.GRAU || '';
+        document.getElementById("edit_pais_atuacao").value = entidade.PAIS_ATUACAO || '';
+        document.getElementById("edit_sede_associacao").value = entidade.SEDE_ASSOCIACAO || '';
+        document.getElementById("edit_data_abertura_associacao").value = entidade.DATA_ABERTURA_ASSOCIACAO || '';
+        document.getElementById("edit_data_fechamento_associacao").value = entidade.DATA_FECHAMENTO_ASSOCIACAO || '';
+        document.getElementById("edit_campo_info_associacao").value = entidade.CAMPO_INFO_ASSOCIACAO || '';
+        await carregarRelacoes();
+    }
+    
+    async function carregarRelacoes() {
+        if(!entidade_id) return;
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`);
+        const data = await res.json();
+
+        const divT = document.getElementById('templos');
+        divT.innerHTML = '';
+        (data.templos || []).forEach(t => {
+            divT.innerHTML += `<div class="related-card"><h4>${t.NOME}</h4><button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button></div>`;
+        });
+
+        const divP = document.getElementById('personalidades');
+        divP.innerHTML = '';
+        (data.personalidades || []).forEach(p => {
+            // CORREÇÃO: Removida a exibição da Função, pois ela não existe nesta relação
+            divP.innerHTML += `<div class="related-card"><h4>${p.NOME_PERSONALIDADE}</h4><button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button></div>`;
+        });
+    }
+
+    function getData() {
+        return {
+            NOME_ASSOCIACAO: document.getElementById('edit_nome_associacao').value.trim(),
+            GRAU: document.getElementById('edit_grau').value.trim(),
+            PAIS_ATUACAO: document.getElementById('edit_pais_atuacao').value.trim(),
+            SEDE_ASSOCIACAO: document.getElementById('edit_sede_associacao').value.trim(),
+            DATA_ABERTURA_ASSOCIACAO: document.getElementById('edit_data_abertura_associacao').value || null,
+            DATA_FECHAMENTO_ASSOCIACAO: document.getElementById('edit_data_fechamento_associacao').value || null,
+            CAMPO_INFO_ASSOCIACAO: document.getElementById('edit_campo_info_associacao').value.trim()
+        };
+    }
+
+    async function atualizarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione uma associação para atualizar."});
+      const data = getData();
+      const res = await fetch(`${baseUrl}/api/associacoes/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) { await carregarEntidades(); document.getElementById('entidadeSelect').value = entidade_id; }
+    }
+
+    async function deletarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione uma associação para apagar."});
+      if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+      const res = await fetch(`${baseUrl}/api/associacoes/${entidade_id}`, { method: 'DELETE' });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) { document.getElementById("entidadeSelect").value = ''; limparFormulario(); carregarEntidades(); }
+    }
+
+    async function buscarAdicionar(tipo) {
+        const select = document.getElementById(`busca_${tipo}`);
+        const id_rel = select.value;
+        if (!id_rel) return exibirMensagem({error: `Selecione um(a) ${tipo} para adicionar.`});
+        // CORREÇÃO: Não precisamos mais pegar o valor da função aqui
+        await adicionarConexao(tipo, id_rel);
+    }
+    
+    async function adicionarConexao(tipo, id_rel) {
+        if (!entidade_id) return exibirMensagem({error: "Selecione uma associação primeiro."});
+        // CORREÇÃO: O payload não precisa mais enviar a função
+        const payload = { tipo, id_rel };
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+
+    async function removerConexao(tipo, id_rel) {
+        if (!confirm(`Remover esta conexão de ${tipo}?`)) return;
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+
+    function exibirMensagem(res) {
+        const el = document.getElementById("mensagem");
+        el.textContent = res.message || res.error;
+        el.className = res.message ? "success" : "error";
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    carregarTudo();
+  </script>
+</body>
+</html>

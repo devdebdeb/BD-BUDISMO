@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Personalidades</title>
+  <style>
+    /* Estilos (sem alterações) */
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    h3 { color: #3a7a5a; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px;}
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .success, .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 10px;}
+    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; }
+    .related-card h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    .inline-group { display: flex; gap: 10px; align-items: flex-end; }
+    .inline-group > * { flex: 1; }
+    label { font-weight: bold; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Personalidades</h2>
+
+    <div class="section">
+      <h3>Editar ou Apagar Personalidade</h3>
+      <select id="entidadeSelect" onchange="carregarEntidade()">
+        <option value="">Selecione uma personalidade</option>
+      </select>
+      <input type="text" id="edit_nome_personalidade" placeholder="Nome da Personalidade" />
+      <input type="text" id="edit_pais_origem_personalidade" placeholder="País de Origem" />
+      <input type="text" id="edit_nivel" placeholder="Nível (ex: Monge, Mestre)" />
+      <input type="text" id="edit_genero" placeholder="Gênero" />
+      <input type="text" id="edit_raca" placeholder="Raça/Etnia" />
+      <label for="edit_data_nascimento">Data de Nascimento:</label>
+      <input type="date" id="edit_data_nascimento" />
+      <label for="edit_data_morte">Data de Morte:</label>
+      <input type="date" id="edit_data_morte" />
+      <textarea id="edit_campo_info_personalidade" placeholder="Informações Biográficas"></textarea>
+      <button onclick="atualizarEntidade()">Atualizar Personalidade</button>
+      <button onclick="deletarEntidade()" style="background-color:#d9534f;">Apagar Personalidade</button>
+    </div>
+
+    <div class="section">
+      <h3>Templos Associados</h3>
+      <div id="templos" class="related-grid"></div>
+      <div class="inline-group">
+        <select id="busca_templo"><option>Carregando...</option></select>
+        <input type="text" id="funcao_templo" placeholder="Função (ex: Fundador)" />
+        <button onclick="buscarAdicionar('templo')">Adicionar</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Associações Vinculadas</h3>
+      <div id="associacoes" class="related-grid"></div>
+      <div class="inline-group">
+        <select id="busca_associacao"><option>Carregando...</option></select>
+        <button onclick="buscarAdicionar('associacao')">Adicionar</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Produtos Associados</h3>
+      <div id="produtos" class="related-grid"></div>
+      <div class="inline-group">
+        <select id="busca_produto"><option>Carregando...</option></select>
+        <button onclick="buscarAdicionar('produto')">Adicionar</button>
+      </div>
+    </div>
+      
+    <div id="mensagem" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || !["moderador", "admin"].includes(usuario.tipo)) {
+      alert("Acesso negado.");
+      window.location.href = "login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    const entidade_tipo = 'personalidade';
+    let entidades = [], templos = [], associacoes = [], produtos = [];
+    let entidade_id = null;
+
+    // --- CORREÇÃO NA FUNÇÃO carregarRelacoes ---
+    async function carregarRelacoes() {
+        if(!entidade_id) return;
+        
+        try {
+            const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`);
+            if (!res.ok) {
+                throw new Error(`Erro na API: ${res.status} ${res.statusText}`);
+            }
+            const data = await res.json();
+
+            // LINHA DE DEPURAÇÃO: VAMOS VER O QUE A API REALMENTE RETORNOU
+            console.log('Dados de relações recebidos da API:', data);
+
+            const divT = document.getElementById('templos');
+            divT.innerHTML = '';
+            (data.templos || []).forEach(t => {
+                divT.innerHTML += `<div class="related-card"><h4>${t.NOME}</h4><p>Função: ${t.FUNCAO || 'N/A'}</p><button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button></div>`;
+            });
+
+            const divA = document.getElementById('associacoes');
+            divA.innerHTML = '';
+            (data.associacoes || []).forEach(a => {
+                divA.innerHTML += `<div class="related-card"><h4>${a.NOME_ASSOCIACAO}</h4><button onclick="removerConexao('associacao', ${a.ID_ASSOCIACAO})">Remover</button></div>`;
+            });
+
+            const divP = document.getElementById('produtos');
+            divP.innerHTML = '';
+            (data.produtos || []).forEach(p => {
+                divP.innerHTML += `<div class="related-card"><h4>${p.NOME_PRODUTO}</h4><button onclick="removerConexao('produto', ${p.ID_PRODUTO})">Remover</button></div>`;
+            });
+        } catch (error) {
+            console.error('Falha ao carregar ou processar relações:', error);
+            exibirMensagem({ error: 'Não foi possível carregar as relações.' });
+        }
+    }
+
+    // O restante do JavaScript (sem alterações)
+    async function carregarTudo() {
+        await carregarEntidades();
+        const resT = await fetch(`${baseUrl}/api/templos?all=true`);
+        const dataT = await resT.json();
+        templos = dataT.data || [];
+        const selectT = document.getElementById("busca_templo");
+        selectT.innerHTML = '<option value="">Selecione um templo</option>';
+        templos.forEach(t => { selectT.innerHTML += `<option value="${t.ID_TEMPLO}">${t.NOME}</option>`; });
+        const resA = await fetch(`${baseUrl}/api/associacoes?all=true`);
+        const dataA = await resA.json();
+        associacoes = dataA.data || [];
+        const selectA = document.getElementById("busca_associacao");
+        selectA.innerHTML = '<option value="">Selecione uma associação</option>';
+        associacoes.forEach(a => { selectA.innerHTML += `<option value="${a.ID_ASSOCIACAO}">${a.NOME_ASSOCIACAO}</option>`; });
+        const resP = await fetch(`${baseUrl}/api/produtos`);
+        const dataP = await resP.json();
+        produtos = dataP.data || [];
+        const selectP = document.getElementById("busca_produto");
+        selectP.innerHTML = '<option value="">Selecione um produto</option>';
+        produtos.forEach(p => { selectP.innerHTML += `<option value="${p.ID_PRODUTO}">${p.NOME_PRODUTO}</option>`; });
+    }
+    async function carregarEntidades() {
+      try {
+        const res = await fetch(`${baseUrl}/api/personalidades?all=true`);
+        const data = await res.json();
+        entidades = data.data || [];
+        const select = document.getElementById("entidadeSelect");
+        select.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        entidades.forEach(e => { select.innerHTML += `<option value="${e.ID_PERSONALIDADE}">${e.NOME_PERSONALIDADE} (ID: ${e.ID_PERSONALIDADE})</option>`; });
+      } catch (err) { exibirMensagem({ error: 'Falha ao carregar personalidades.' }); }
+    }
+    function limparFormulario() {
+        const ids = ["edit_nome_personalidade", "edit_pais_origem_personalidade", "edit_nivel", "edit_genero", "edit_raca", "edit_data_nascimento", "edit_data_morte", "edit_campo_info_personalidade"];
+        ids.forEach(id => document.getElementById(id).value = '');
+        document.getElementById('templos').innerHTML = '';
+        document.getElementById('associacoes').innerHTML = '';
+        document.getElementById('produtos').innerHTML = '';
+    }
+    async function carregarEntidade() {
+      entidade_id = document.getElementById("entidadeSelect").value;
+      if (!entidade_id) { limparFormulario(); return; }
+      const entidade = entidades.find(e => e.ID_PERSONALIDADE == entidade_id);
+      if (!entidade) return;
+      document.getElementById("edit_nome_personalidade").value = entidade.NOME_PERSONALIDADE || '';
+      document.getElementById("edit_pais_origem_personalidade").value = entidade.PAIS_ORIGEM_PERSONALIDADE || '';
+      document.getElementById("edit_nivel").value = entidade.NIVEL || '';
+      document.getElementById("edit_genero").value = entidade.GENERO || '';
+      document.getElementById("edit_raca").value = entidade.RACA || '';
+      document.getElementById("edit_data_nascimento").value = entidade.DATA_NASCIMENTO || '';
+      document.getElementById("edit_data_morte").value = entidade.DATA_MORTE || '';
+      document.getElementById("edit_campo_info_personalidade").value = entidade.CAMPO_INFO_PERSONALIDADE || '';
+      await carregarRelacoes();
+    }
+    function getData() {
+      return {
+        NOME_PERSONALIDADE: document.getElementById('edit_nome_personalidade').value.trim(),
+        PAIS_ORIGEM_PERSONALIDADE: document.getElementById('edit_pais_origem_personalidade').value.trim(),
+        NIVEL: document.getElementById('edit_nivel').value.trim(),
+        GENERO: document.getElementById('edit_genero').value.trim(),
+        RACA: document.getElementById('edit_raca').value.trim(),
+        DATA_NASCIMENTO: document.getElementById('edit_data_nascimento').value || null,
+        DATA_MORTE: document.getElementById('edit_data_morte').value || null,
+        CAMPO_INFO_PERSONALIDADE: document.getElementById('edit_campo_info_personalidade').value.trim()
+      };
+    }
+    async function atualizarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione uma personalidade para atualizar."});
+      const data = getData();
+      const res = await fetch(`${baseUrl}/api/personalidades/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) { await carregarEntidades(); document.getElementById('entidadeSelect').value = entidade_id; }
+    }
+    async function deletarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione uma personalidade para apagar."});
+      if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+      const res = await fetch(`${baseUrl}/api/personalidades/${entidade_id}`, { method: 'DELETE' });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) { document.getElementById("entidadeSelect").value = ''; limparFormulario(); carregarEntidades(); }
+    }
+    async function buscarAdicionar(tipo) {
+        const select = document.getElementById(`busca_${tipo}`);
+        const id_rel = select.value;
+        if (!id_rel) return exibirMensagem({error: `Selecione um(a) ${tipo} para adicionar.`});
+        let funcao = tipo === 'templo' ? document.getElementById('funcao_templo').value.trim() : null;
+        await adicionarConexao(tipo, id_rel, funcao);
+    }
+    async function adicionarConexao(tipo, id_rel, funcao) {
+        if (!entidade_id) return exibirMensagem({error: "Selecione uma personalidade primeiro."});
+        const payload = { tipo, id_rel, funcao };
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+    async function removerConexao(tipo, id_rel) {
+        if (!confirm(`Remover esta conexão de ${tipo}?`)) return;
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+    function exibirMensagem(res) {
+        const el = document.getElementById("mensagem");
+        el.textContent = res.message || res.error;
+        el.className = res.message ? "success" : "error";
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+    carregarTudo();
+  </script>
+</body>
+</html>

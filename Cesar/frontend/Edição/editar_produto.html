@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Produtos</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    h3 { color: #3a7a5a; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px;}
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .success, .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 10px;}
+    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; }
+    .related-card h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    .inline-group { display: flex; gap: 10px; align-items: flex-end; }
+    .inline-group > * { flex: 1; }
+    label { font-weight: bold; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Produtos</h2>
+    <div class="section">
+      <h3>Editar ou Apagar Produto</h3>
+      <select id="entidadeSelect" onchange="carregarEntidade()">
+        <option value="">Selecione um produto</option>
+      </select>
+      <input type="text" id="edit_nome_produto" placeholder="Nome do Produto" />
+      <input type="text" id="edit_tipo_produto" placeholder="Tipo do Produto (ex: Livro, Estátua)" />
+      <label for="edit_data_lancamento">Data de Lançamento:</label>
+      <input type="date" id="edit_data_lancamento" />
+      <button onclick="atualizarEntidade()">Atualizar Produto</button>
+      <button onclick="deletarEntidade()" style="background-color:#d9534f;">Apagar Produto</button>
+    </div>
+
+    <div class="section">
+        <h3>Personalidades Associadas (Autores, Criadores, etc.)</h3>
+        <div id="personalidades" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_personalidade"><option>Carregando...</option></select>
+            <button onclick="buscarAdicionar('personalidade')">Adicionar Personalidade</button>
+        </div>
+    </div>
+      
+    <div id="mensagem" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || !["moderador", "admin"].includes(usuario.tipo)) {
+      alert("Acesso negado.");
+      window.location.href = "login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    const entidade_tipo = 'produto';
+    let entidades = [], personalidades = [];
+    let entidade_id = null;
+
+    async function carregarTudo() {
+        await carregarEntidades(); // Carrega a lista principal de produtos
+        // Carrega a lista de personalidades para o dropdown de relações
+        const resP = await fetch(`${baseUrl}/api/personalidades?all=true`);
+        const dataP = await resP.json();
+        personalidades = dataP.data || [];
+        const selectP = document.getElementById("busca_personalidade");
+        selectP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => {
+            selectP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`;
+        });
+    }
+
+    async function carregarEntidades() {
+      try {
+        const res = await fetch(`${baseUrl}/api/produtos`);
+        const data = await res.json();
+        entidades = data.data || [];
+        const select = document.getElementById("entidadeSelect");
+        select.innerHTML = '<option value="">Selecione um produto</option>';
+        entidades.forEach(e => {
+          select.innerHTML += `<option value="${e.ID_PRODUTO}">${e.NOME_PRODUTO} (ID: ${e.ID_PRODUTO})</option>`;
+        });
+      } catch(err) {
+        exibirMensagem({ error: "Falha ao carregar produtos." });
+      }
+    }
+
+    function limparFormulario() {
+        document.getElementById('edit_nome_produto').value = '';
+        document.getElementById('edit_tipo_produto').value = '';
+        document.getElementById('edit_data_lancamento').value = '';
+        document.getElementById('personalidades').innerHTML = '';
+    }
+
+    async function carregarEntidade() {
+        entidade_id = document.getElementById("entidadeSelect").value;
+        if(!entidade_id) {
+            limparFormulario();
+            return;
+        }
+        const entidade = entidades.find(e => e.ID_PRODUTO == entidade_id);
+        if(!entidade) return;
+        
+        document.getElementById("edit_nome_produto").value = entidade.NOME_PRODUTO || '';
+        document.getElementById("edit_tipo_produto").value = entidade.TIPO_PRODUTO || '';
+        document.getElementById("edit_data_lancamento").value = entidade.DATA_LANCAMENTO || '';
+        await carregarRelacoes();
+    }
+
+    async function carregarRelacoes() {
+        if(!entidade_id) return;
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`);
+        const data = await res.json();
+        const div = document.getElementById('personalidades');
+        div.innerHTML = '';
+        (data.personalidades || []).forEach(p => {
+            div.innerHTML += `<div class="related-card"><h4>${p.NOME_PERSONALIDADE}</h4><button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button></div>`;
+        });
+    }
+
+    function getData() {
+        return {
+            NOME_PRODUTO: document.getElementById('edit_nome_produto').value.trim(),
+            TIPO_PRODUTO: document.getElementById('edit_tipo_produto').value.trim(),
+            DATA_LANCAMENTO: document.getElementById('edit_data_lancamento').value || null
+        };
+    }
+    
+    async function atualizarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione um produto para atualizar."});
+      const data = getData();
+      const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) {
+        await carregarEntidades();
+        document.getElementById('entidadeSelect').value = entidade_id;
+      }
+    }
+
+    async function deletarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione um produto para apagar."});
+      if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+      const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}`, { method: 'DELETE' });
+      const json = await res.json();
+      exibirMensagem(json);
+      if (res.ok) {
+        document.getElementById("entidadeSelect").value = '';
+        limparFormulario();
+        carregarEntidades();
+      }
+    }
+
+    async function buscarAdicionar(tipo) {
+        const select = document.getElementById(`busca_${tipo}`);
+        const id_rel = select.value;
+        if (!id_rel) return exibirMensagem({error: `Selecione um(a) ${tipo} para adicionar.`});
+        await adicionarConexao(tipo, id_rel);
+    }
+    
+    async function adicionarConexao(tipo, id_rel) {
+        if (!entidade_id) return exibirMensagem({error: "Selecione um produto primeiro."});
+        const payload = { tipo, id_rel };
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+
+    async function removerConexao(tipo, id_rel) {
+        if (!confirm(`Remover esta conexão de ${tipo}?`)) return;
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) await carregarRelacoes();
+    }
+
+    function exibirMensagem(res) {
+        const el = document.getElementById("mensagem");
+        el.textContent = res.message || res.error;
+        el.className = res.message ? "success" : "error";
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    carregarTudo();
+  </script>
+</body>
+</html>
