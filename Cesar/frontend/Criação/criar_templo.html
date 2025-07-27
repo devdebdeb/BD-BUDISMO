@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Criar Novo Templo</title>
+  <style>
+    /* Estilos são os mesmos das páginas de edição para manter a consistência */
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; }
+    .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    label { font-weight: bold; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Criar Novo Templo</h2>
+    <input type="text" id="nome" placeholder="* Nome do Templo" />
+    <input type="text" id="pais" placeholder="* País" />
+    <input type="text" id="estado" placeholder="Estado" />
+    <input type="text" id="municipio" placeholder="Município" />
+    <input type="text" id="codigo_postal" placeholder="Código Postal" />
+    <input type="text" id="escola" placeholder="* Escola / Tradição" />
+    <input type="text" id="veiculo" placeholder="* Veículo (ex: Mahayana)" />
+    <select id="publico_alvo">
+      <option value="">Selecione o Público-Alvo</option>
+      <option value="1">Étnico</option>
+      <option value="0">Conversão</option>
+    </select>
+    <label for="data_abertura_templo">Data de Abertura:</label>
+    <input type="date" id="data_abertura_templo" />
+    <label for="data_fechamento_templo">Data de Fechamento:</label>
+    <input type="date" id="data_fechamento_templo" />
+    <textarea id="campo_info_templo" placeholder="Texto Informacional"></textarea>
+    <button onclick="criar()">Criar Templo e ir para Edição</button>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:5000';
+
+    async function criar() {
+      const data = {
+        NOME: document.getElementById('nome').value,
+        PAIS: document.getElementById('pais').value,
+        ESTADO: document.getElementById('estado').value,
+        MUNICIPIO: document.getElementById('municipio').value,
+        CODIGO_POSTAL: document.getElementById('codigo_postal').value,
+        ESCOLA: document.getElementById('escola').value,
+        VEICULO: document.getElementById('veiculo').value,
+        PUBLICO_ALVO: document.getElementById('publico_alvo').value,
+        DATA_ABERTURA_TEMPLO: document.getElementById('data_abertura_templo').value,
+        DATA_FECHAMENTO_TEMPLO: document.getElementById('data_fechamento_templo').value,
+        CAMPO_INFO_TEMPLO: document.getElementById('campo_info_templo').value
+      };
+
+      try {
+        const res = await fetch(`${baseUrl}/api/templos`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(json.error || 'Erro desconhecido');
+        }
+
+        // Se a criação for um sucesso, redireciona para a página de edição do novo templo
+        alert('Templo criado com sucesso! Redirecionando para a página de edição para adicionar relações.');
+        window.location.href = `../Edição/editar_templo.html?id=${json.id}`;
+        
+      } catch (error) {
+        const el = document.getElementById("mensagem");
+        el.textContent = error.message;
+        el.className = "error";
+      }
+    }
+  </script>
+</body>
+</html>

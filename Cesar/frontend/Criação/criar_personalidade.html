@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Nova Personalidade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos base (idênticos aos do criador.html e editor.html) */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 30px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #499a6e;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 2rem;
+    }
+    p.subtitle {
+        text-align: center;
+        color: #555;
+        margin-bottom: 40px;
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px; /* Reduzido o espaço superior */
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    button {
+      background: #499a6e;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #3a7a5a;
+    }
+    .error, .success {
+      text-align: center;
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    label {
+      font-weight: 500;
+      color: #333;
+      font-size: 0.9rem;
+    }
+    
+    /* NOVO: Grid para o formulário */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Duas colunas */
+        gap: 20px;
+    }
+
+    /* NOVO: Classe para um item ocupar a largura total do grid */
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* NOVO: Container para cada campo do formulário */
+    .form-field {
+        margin-bottom: 10px;
+    }
+
+    /* Ajuste para telas menores */
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
+      }
+      .container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Criar Nova Personalidade</h2>
+    <p class="subtitle">Preencha os campos abaixo. Campos marcados com * são obrigatórios.</p>
+
+    <div class="form-grid">
+        <div class="form-field full-width">
+            <label for="nome_personalidade">* Nome da Personalidade</label>
+            <input type="text" id="nome_personalidade" />
+        </div>
+        <div class="form-field">
+            <label for="pais_origem_personalidade">País de Origem</label>
+            <input type="text" id="pais_origem_personalidade" />
+        </div>
+        <div class="form-field">
+            <label for="nivel">* Nível (ex: Monge, Mestre)</label>
+            <input type="text" id="nivel" />
+        </div>
+        <div class="form-field">
+            <label for="genero">Gênero</label>
+            <input type="text" id="genero" />
+        </div>
+        <div class="form-field">
+            <label for="raca">* Raça/Etnia</label>
+            <input type="text" id="raca" />
+        </div>
+        <div class="form-field">
+            <label for="data_nascimento">Data de Nascimento</label>
+            <input type="date" id="data_nascimento" />
+        </div>
+        <div class="form-field">
+            <label for="data_morte">Data de Morte</label>
+            <input type="date" id="data_morte" />
+        </div>
+        <div class="form-field full-width">
+            <label for="campo_info_personalidade">Informações Biográficas</label>
+            <textarea id="campo_info_personalidade"></textarea>
+        </div>
+    </div>
+
+    <button onclick="criar()">Criar Personalidade e ir para Edição</button>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    // A lógica do JavaScript permanece a mesma, pois é funcional.
+    const baseUrl = 'http://localhost:5000';
+
+    async function criar() {
+      const data = {
+        NOME_PERSONALIDADE: document.getElementById('nome_personalidade').value,
+        PAIS_ORIGEM_PERSONALIDADE: document.getElementById('pais_origem_personalidade').value,
+        NIVEL: document.getElementById('nivel').value,
+        GENERO: document.getElementById('genero').value,
+        RACA: document.getElementById('raca').value,
+        DATA_NASCIMENTO: document.getElementById('data_nascimento').value,
+        DATA_MORTE: document.getElementById('data_morte').value,
+        CAMPO_INFO_PERSONALIDADE: document.getElementById('campo_info_personalidade').value
+      };
+      
+      const mensagemDiv = document.getElementById("mensagem");
+
+      try {
+        const res = await fetch(`${baseUrl}/api/personalidades`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(json.error || 'Ocorreu um erro desconhecido.');
+        }
+
+        mensagemDiv.textContent = json.message;
+        mensagemDiv.className = 'success';
+        alert('Personalidade criada com sucesso! Redirecionando para a página de edição para adicionar relações.');
+        window.location.href = `../Edição/editar_personalidade.html?id=${json.id}`;
+
+      } catch (error) {
+        mensagemDiv.textContent = error.message;
+        mensagemDiv.className = 'error';
+      }
+    }
+  </script>
+</body>
+</html>

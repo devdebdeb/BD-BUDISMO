@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Novo(a) [ENTIDADE]</title>
+  <style>
+    /* Estilos base - Copiados do editor */
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    label { font-weight: bold; color: #555; font-size: 0.9rem; display: block; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Criar Novo(a) [ENTIDADE]</h2>
+    <button onclick="criarEntidade()">Criar [ENTIDADE] e ir para Edição</button>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:5000';
+    const entidadeEndpoint = '/api/[ENTIDADES]'; // Será substituído
+    const entidadeSingular = '[ENTIDADE]'; // Será substituído
+    const entidadePlural = '[ENTIDADES]'; // Será substituído
+    const paginaEdicao = '../Edição/editar_[entidade_minusculo].html'; // Será substituído
+
+    async function criarEntidade() {
+      const data = {};
+      // Os campos do formulário serão coletados aqui
+
+      try {
+        const res = await fetch(`${baseUrl}${entidadeEndpoint}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+
+        const mensagemDiv = document.getElementById('mensagem');
+        mensagemDiv.textContent = json.message || json.error || 'Erro desconhecido';
+        mensagemDiv.className = res.ok ? 'success' : 'error';
+
+        if (res.ok && json.id) {
+          alert(`${entidadeSingular} criado(a) com sucesso! Redirecionando para a página de edição para adicionar relações.`);
+          window.location.href = `${paginaEdicao}?id=${json.id}`;
+        }
+
+      } catch (error) {
+        console.error('Erro ao criar entidade:', error);
+        const mensagemDiv = document.getElementById('mensagem');
+        mensagemDiv.textContent = 'Ocorreu um erro ao criar a entidade.';
+        mensagemDiv.className = 'error';
+      }
+    }
+
+    // Função para coletar os valores dos campos do formulário (será implementada em cada página)
+    function coletarDadosFormulario() {
+      const data = {};
+      // Exemplo: data.nome = document.getElementById('nome').value;
+      return data;
+    }
+
+    // Função para definir o título da página (será implementada em cada página)
+    function definirTitulo(titulo) {
+      document.title = `Criar Novo(a) ${titulo}`;
+      document.querySelector('h2').textContent = `Criar Novo(a) ${titulo}`;
+    }
+
+    // Função para definir o endpoint da API (será implementada em cada página)
+    function definirEndpoint(singular, plural) {
+      entidadeSingular = singular;
+      entidadePlural = plural;
+      entidadeEndpoint = `/api/${plural}`;
+      paginaEdicao = `../Edição/editar_${singular.toLowerCase()}.html`;
+      definirTitulo(singular);
+    }
+  </script>
+</body>
+</html>

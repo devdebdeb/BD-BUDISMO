@@ -580,34 +580,6 @@ def get_editor_data():
 
 # SUBSTITUA A SUA FUNÇÃO criar_templo POR ESTA:
 
-@app.route('/api/templos', methods=['POST'])
-def criar_templo():
-    data = request.json
-    
-    # Lista de campos COM OS NOMES CORRETOS do banco de dados
-    campos_bd = ['NOME', 'PAIS', 'ESTADO', 'ESCOLA', 'DATA_ABERTURA_TEMPLO', 'DATA_FECHAMENTO_TEMPLO', 'CAMPO_INFO_TEMPLO']
-    
-    # Pega os valores do JSON recebido
-    valores = [data.get(c) for c in campos_bd]
-
-    conn = get_db()
-    cursor = conn.cursor()
-    try:
-        # Query INSERT COM OS NOMES CORRETOS das colunas
-        query = """
-            INSERT INTO templo (NOME, PAIS, ESTADO, ESCOLA, DATA_ABERTURA_TEMPLO, DATA_FECHAMENTO_TEMPLO, CAMPO_INFO_TEMPLO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(query, valores)
-        conn.commit()
-        return jsonify({"message": "Templo criado com sucesso."}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
 @app.route('/api/templos/<int:id_templo>', methods=['PUT'])
 def atualizar_templo(id_templo):
     data = request.json
@@ -1027,7 +999,128 @@ def remover_conexao_produto(produto_id):
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor: cursor.close()
-        if conn: conn.close()        
+        if conn: conn.close()   
+
+# =================================================================================
+# NOVAS ROTAS DE CRIAÇÃO (POST)
+# =================================================================================
+from flask import request, jsonify # Garanta que request está importado
+
+# Rota para CRIAR um novo Templo
+@app.route('/api/templos', methods=['POST'])
+def criar_templo():
+    data = request.json
+    # Campos obrigatórios baseados no seu SQL (NOT NULL)
+    campos_obrigatorios = ['NOME', 'VEICULO', 'PAIS', 'ESCOLA']
+    if not all(campo in data and data[campo] for campo in campos_obrigatorios):
+        return jsonify({"error": "Campos obrigatórios (Nome, Veículo, País, Escola) não podem estar em branco."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO templo (NOME, PAIS, ESTADO, MUNICIPIO, CODIGO_POSTAL, ESCOLA, VEICULO, PUBLICO_ALVO, DATA_ABERTURA_TEMPLO, DATA_FECHAMENTO_TEMPLO, CAMPO_INFO_TEMPLO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        valores = (
+            data.get('NOME'), data.get('PAIS'), data.get('ESTADO'), data.get('MUNICIPIO'),
+            data.get('CODIGO_POSTAL'), data.get('ESCOLA'), data.get('VEICULO'),
+            data.get('PUBLICO_ALVO'), data.get('DATA_ABERTURA_TEMPLO') or None,
+            data.get('DATA_FECHAMENTO_TEMPLO') or None, data.get('CAMPO_INFO_TEMPLO')
+        )
+        cursor.execute(query, valores)
+        conn.commit()
+        # Retorna o ID do templo recém-criado
+        return jsonify({"message": "Templo criado com sucesso.", "id": cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# Rota para CRIAR uma nova Personalidade
+@app.route('/api/personalidades', methods=['POST'])
+def criar_personalidade():
+    data = request.json
+    campos_obrigatorios = ['NOME_PERSONALIDADE', 'NIVEL', 'RACA']
+    if not all(campo in data and data[campo] for campo in campos_obrigatorios):
+        return jsonify({"error": "Campos obrigatórios (Nome, Nível, Raça) não podem estar em branco."}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO personalidade (NOME_PERSONALIDADE, PAIS_ORIGEM_PERSONALIDADE, NIVEL, GENERO, RACA, DATA_NASCIMENTO, DATA_MORTE, CAMPO_INFO_PERSONALIDADE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        valores = (
+            data.get('NOME_PERSONALIDADE'), data.get('PAIS_ORIGEM_PERSONALIDADE'), data.get('NIVEL'),
+            data.get('GENERO'), data.get('RACA'), data.get('DATA_NASCIMENTO') or None,
+            data.get('DATA_MORTE') or None, data.get('CAMPO_INFO_PERSONALIDADE')
+        )
+        cursor.execute(query, valores)
+        conn.commit()
+        return jsonify({"message": "Personalidade criada com sucesso.", "id": cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# Rota para CRIAR uma nova Associação
+@app.route('/api/associacoes', methods=['POST'])
+def criar_associacao():
+    data = request.json
+    campos_obrigatorios = ['NOME_ASSOCIACAO', 'GRAU', 'PAIS_ATUACAO']
+    if not all(campo in data and data[campo] for campo in campos_obrigatorios):
+        return jsonify({"error": "Campos obrigatórios (Nome, Grau, País de Atuação) não podem estar em branco."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO associacao (NOME_ASSOCIACAO, GRAU, PAIS_ATUACAO, SEDE_ASSOCIACAO, DATA_ABERTURA_ASSOCIACAO, DATA_FECHAMENTO_ASSOCIACAO, CAMPO_INFO_ASSOCIACAO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        valores = (
+            data.get('NOME_ASSOCIACAO'), data.get('GRAU'), data.get('PAIS_ATUACAO'),
+            data.get('SEDE_ASSOCIACAO'), data.get('DATA_ABERTURA_ASSOCIACAO') or None,
+            data.get('DATA_FECHAMENTO_ASSOCIACAO') or None, data.get('CAMPO_INFO_ASSOCIACAO')
+        )
+        cursor.execute(query, valores)
+        conn.commit()
+        return jsonify({"message": "Associação criada com sucesso.", "id": cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# Rota para CRIAR um novo Produto
+@app.route('/api/produtos', methods=['POST'])
+def criar_produto():
+    data = request.json
+    campos_obrigatorios = ['NOME_PRODUTO', 'TIPO_PRODUTO']
+    if not all(campo in data and data[campo] for campo in campos_obrigatorios):
+        return jsonify({"error": "Campos obrigatórios (Nome, Tipo) não podem estar em branco."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        query = "INSERT INTO produto (NOME_PRODUTO, TIPO_PRODUTO, DATA_LANCAMENTO) VALUES (%s, %s, %s)"
+        valores = (
+            data.get('NOME_PRODUTO'), data.get('TIPO_PRODUTO'), data.get('DATA_LANCAMENTO') or None
+        )
+        cursor.execute(query, valores)
+        conn.commit()
+        return jsonify({"message": "Produto criado com sucesso.", "id": cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 if __name__ == '__main__': 
     app.run(debug=True)
