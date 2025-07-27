@@ -2,40 +2,52 @@
 # Beta da Versão com imagens e reorganizada pra integrar com a versão do André
 # =====================================================================
 
-# --- 1. Imports e Configs ---
-from flask import Flask, jsonify, request
+# --- 1. Imports e Configuração Inicial ---
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import mysql.connector
 import os
 from dotenv import load_dotenv
 from datetime import datetime, date
+from werkzeug.utils import secure_filename
+import uuid
 
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
+basedir = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(basedir, 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+CORS(app)
 ITEMS_PER_PAGE = 20
 
 
-# --- 2. Funções Auxiliares ------------------------------------------------------------------------------
+
+# --- 2. Funções Auxiliares ---
 def get_db():
     return mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
+        host=os.getenv('DB_HOST'), user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'), database=os.getenv('DB_NAME')
     )
 
-
 def format_date(date_obj):
-    """Converte '0001-01-01' em None e formata objetos de data para string."""
-    if not date_obj or str(date_obj) == '0001-01-01':
-        return None
-    if isinstance(date_obj, (datetime, date)):
-        return date_obj.strftime('%Y-%m-%d')
+    if not date_obj or str(date_obj) == '0001-01-01': return None
+    if isinstance(date_obj, (datetime, date)): return date_obj.strftime('%Y-%m-%d')
     return str(date_obj)
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# --- Rota para Servir Arquivos de Imagem ---
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 #filtros geograficos
 @app.route('/api/filtros_geograficos', methods=['GET'])
@@ -145,6 +157,71 @@ def global_search():
         if conn: conn.close()
 
 
+
+@app.route('/api/stats/uploads', methods=['GET'])
+def get_upload_stats():
+    stats = {}
+    try:
+        total_size_uploads = 0
+        file_count = 0
+        folder_path = app.config['UPLOAD_FOLDER']
+        
+        if os.path.exists(folder_path):
+            for filename in os.listdir(folder_path):
+                path = os.path.join(folder_path, filename)
+                if os.path.isfile(path):
+                    total_size_uploads += os.path.getsize(path)
+                    file_count += 1
+        
+        if total_size_uploads >= 1024**3:
+            stats['total_size_str'] = f"{total_size_uploads / (1024**3):.2f} GB"
+        elif total_size_uploads >= 1024**2:
+            stats['total_size_str'] = f"{total_size_uploads / (1024**2):.2f} MB"
+        elif total_size_uploads >= 1024:
+            stats['total_size_str'] = f"{total_size_uploads / 1024:.2f} KB"
+        else:
+            stats['total_size_str'] = f"{total_size_uploads} Bytes"
+        
+        stats['file_count'] = file_count
+        stats['total_size_bytes'] = total_size_uploads
+        return jsonify(stats)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/stats/database', methods=['GET'])
+def get_database_stats():
+    stats = {}
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        db_name = os.getenv('DB_NAME')
+        cursor.execute("""
+            SELECT SUM(data_length + index_length) AS size_bytes
+            FROM information_schema.TABLES
+            WHERE table_schema = %s
+        """, (db_name,))
+        
+        result = cursor.fetchone()
+        total_size_db = result['size_bytes'] if result and result['size_bytes'] else 0
+
+        if total_size_db >= 1024**3:
+            stats['db_size_str'] = f"{total_size_db / (1024**3):.2f} GB"
+        elif total_size_db >= 1024**2:
+            stats['db_size_str'] = f"{total_size_db / (1024**2):.2f} MB"
+        elif total_size_db >= 1024:
+            stats['db_size_str'] = f"{total_size_db / 1024:.2f} KB"
+        else:
+            stats['db_size_str'] = f"{total_size_db} Bytes"
+            
+        stats['db_size_bytes'] = int(total_size_db) # Garante que seja um inteiro
+        return jsonify(stats)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 # --- 3. Rotas de Autenticação e Usuários (A parte da administração e moderação)-----------------------------------------------
 
@@ -303,14 +380,18 @@ def criar_templo():
     conn, cursor = get_db(), None
     try:
         cursor = conn.cursor()
+        # Query ATUALIZADA para incluir a nova coluna de imagem
         query = """
-            INSERT INTO templo (NOME, PAIS, ESTADO, MUNICIPIO, CODIGO_POSTAL, ESCOLA, VEICULO, PUBLICO_ALVO, DATA_ABERTURA_TEMPLO, DATA_FECHAMENTO_TEMPLO, CAMPO_INFO_TEMPLO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO templo 
+            (NOME, PAIS, ESTADO, MUNICIPIO, CODIGO_POSTAL, ESCOLA, VEICULO, PUBLICO_ALVO, 
+            DATA_ABERTURA_TEMPLO, DATA_FECHAMENTO_TEMPLO, CAMPO_INFO_TEMPLO, IMAGEM_PERFIL_URL)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
+        # Valores ATUALIZADOS para corresponder à nova query
         valores = (
             data.get('NOME'), data.get('PAIS'), data.get('ESTADO'), data.get('MUNICIPIO'), data.get('CODIGO_POSTAL'),
             data.get('ESCOLA'), data.get('VEICULO'), data.get('PUBLICO_ALVO'), data.get('DATA_ABERTURA_TEMPLO') or None,
-            data.get('DATA_FECHAMENTO_TEMPLO') or None, data.get('CAMPO_INFO_TEMPLO')
+            data.get('DATA_FECHAMENTO_TEMPLO') or None, data.get('CAMPO_INFO_TEMPLO'), None # 'None' para a nova IMAGEM_PERFIL_URL
         )
         cursor.execute(query, valores)
         conn.commit()
@@ -350,11 +431,23 @@ def atualizar_templo(id_templo):
 @app.route('/api/templos/<int:id_templo>', methods=['DELETE'])
 def deletar_templo(id_templo):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
+        # ATUALIZAÇÃO: Apagar arquivos de imagem do servidor antes de deletar do banco
+        cursor.execute("SELECT IMAGEM_PERFIL_URL FROM templo WHERE ID_TEMPLO = %s", (id_templo,))
+        perfil = cursor.fetchone()
+        if perfil and perfil.get('IMAGEM_PERFIL_URL') and os.path.exists(perfil['IMAGEM_PERFIL_URL'].strip('/')):
+            os.remove(perfil['IMAGEM_PERFIL_URL'].strip('/'))
+
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_templo WHERE ID_TEMPLO_FK = %s", (id_templo,))
+        carrossel = cursor.fetchall()
+        for img in carrossel:
+            if img.get('URL_IMAGEM') and os.path.exists(img['URL_IMAGEM'].strip('/')):
+                os.remove(img['URL_IMAGEM'].strip('/'))
+        
         cursor.execute("DELETE FROM templo WHERE ID_TEMPLO = %s", (id_templo,))
         conn.commit()
-        return jsonify({"message": "Templo deletado com sucesso."})
+        return jsonify({"message": "Templo e imagens associadas foram apagados com sucesso."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -415,18 +508,19 @@ def criar_personalidade():
     campos_obrigatorios = ['NOME_PERSONALIDADE', 'NIVEL', 'RACA']
     if not all(campo in data and data[campo] for campo in campos_obrigatorios):
         return jsonify({"error": "Campos obrigatórios (Nome, Nível, Raça) não podem estar em branco."}), 400
-    
-    conn = get_db()
-    cursor = conn.cursor()
+    conn, cursor = get_db(), None
     try:
+        cursor = conn.cursor()
         query = """
-            INSERT INTO personalidade (NOME_PERSONALIDADE, PAIS_ORIGEM_PERSONALIDADE, NIVEL, GENERO, RACA, DATA_NASCIMENTO, DATA_MORTE, CAMPO_INFO_PERSONALIDADE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO personalidade 
+            (NOME_PERSONALIDADE, PAIS_ORIGEM_PERSONALIDADE, NIVEL, GENERO, RACA, 
+            DATA_NASCIMENTO, DATA_MORTE, CAMPO_INFO_PERSONALIDADE, IMAGEM_PERFIL_URL)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         valores = (
             data.get('NOME_PERSONALIDADE'), data.get('PAIS_ORIGEM_PERSONALIDADE'), data.get('NIVEL'),
             data.get('GENERO'), data.get('RACA'), data.get('DATA_NASCIMENTO') or None,
-            data.get('DATA_MORTE') or None, data.get('CAMPO_INFO_PERSONALIDADE')
+            data.get('DATA_MORTE') or None, data.get('CAMPO_INFO_PERSONALIDADE'), None
         )
         cursor.execute(query, valores)
         conn.commit()
@@ -434,8 +528,8 @@ def criar_personalidade():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route('/api/personalidades/<int:id_personalidade>', methods=['PUT'])
 def atualizar_personalidade(id_personalidade):
@@ -478,18 +572,23 @@ def atualizar_personalidade(id_personalidade):
 # Rota para APAGAR uma personalidade existente
 @app.route('/api/personalidades/<int:id_personalidade>', methods=['DELETE'])
 def deletar_personalidade(id_personalidade):
+    # ATUALIZAÇÃO: Lógica para apagar arquivos de imagem
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
-        # Primeiro, apaga as relações em tabelas intermediárias para evitar erros de chave estrangeira
-        cursor.execute("DELETE FROM PERSONALIDADE_TEMPLO WHERE ID_PERSONALIDADE = %s", (id_personalidade,)) 
-        cursor.execute("DELETE FROM PERSONALIDADE_ASSOCIACAO WHERE ID_PERSONALIDADE = %s", (id_personalidade,))
-        cursor.execute("DELETE FROM PERSONALIDADE_PRODUTO WHERE ID_PERSONALIDADE = %s", (id_personalidade,)) 
-
-        # Agora, apaga a personalidade principal
-        cursor.execute("DELETE FROM PERSONALIDADE WHERE ID_PERSONALIDADE = %s", (id_personalidade,)) 
+        cursor.execute("SELECT IMAGEM_PERFIL_URL FROM personalidade WHERE ID_PERSONALIDADE = %s", (id_personalidade,))
+        perfil = cursor.fetchone()
+        if perfil and perfil.get('IMAGEM_PERFIL_URL') and os.path.exists(perfil['IMAGEM_PERFIL_URL'].strip('/')):
+            os.remove(perfil['IMAGEM_PERFIL_URL'].strip('/'))
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_personalidade WHERE ID_PERSONALIDADE_FK = %s", (id_personalidade,))
+        carrossel = cursor.fetchall()
+        for img in carrossel:
+            if img.get('URL_IMAGEM') and os.path.exists(img['URL_IMAGEM'].strip('/')):
+                os.remove(img['URL_IMAGEM'].strip('/'))
+        
+        cursor.execute("DELETE FROM personalidade WHERE ID_PERSONALIDADE = %s", (id_personalidade,))
         conn.commit()
-        return jsonify({"message": "Personalidade apagada com sucesso."})
+        return jsonify({"message": "Personalidade e imagens associadas foram apagadas com sucesso."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -542,18 +641,19 @@ def criar_associacao():
     campos_obrigatorios = ['NOME_ASSOCIACAO', 'GRAU', 'PAIS_ATUACAO']
     if not all(campo in data and data[campo] for campo in campos_obrigatorios):
         return jsonify({"error": "Campos obrigatórios (Nome, Grau, País de Atuação) não podem estar em branco."}), 400
-
-    conn = get_db()
-    cursor = conn.cursor()
+    conn, cursor = get_db(), None
     try:
+        cursor = conn.cursor()
         query = """
-            INSERT INTO associacao (NOME_ASSOCIACAO, GRAU, PAIS_ATUACAO, SEDE_ASSOCIACAO, DATA_ABERTURA_ASSOCIACAO, DATA_FECHAMENTO_ASSOCIACAO, CAMPO_INFO_ASSOCIACAO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO associacao 
+            (NOME_ASSOCIACAO, GRAU, PAIS_ATUACAO, SEDE_ASSOCIACAO, 
+            DATA_ABERTURA_ASSOCIACAO, DATA_FECHAMENTO_ASSOCIACAO, CAMPO_INFO_ASSOCIACAO, IMAGEM_PERFIL_URL)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         valores = (
             data.get('NOME_ASSOCIACAO'), data.get('GRAU'), data.get('PAIS_ATUACAO'),
             data.get('SEDE_ASSOCIACAO'), data.get('DATA_ABERTURA_ASSOCIACAO') or None,
-            data.get('DATA_FECHAMENTO_ASSOCIACAO') or None, data.get('CAMPO_INFO_ASSOCIACAO')
+            data.get('DATA_FECHAMENTO_ASSOCIACAO') or None, data.get('CAMPO_INFO_ASSOCIACAO'), None
         )
         cursor.execute(query, valores)
         conn.commit()
@@ -561,8 +661,8 @@ def criar_associacao():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 
 # Rota para ATUALIZAR uma associação existente
@@ -665,13 +765,13 @@ def criar_produto():
     campos_obrigatorios = ['NOME_PRODUTO', 'TIPO_PRODUTO']
     if not all(campo in data and data[campo] for campo in campos_obrigatorios):
         return jsonify({"error": "Campos obrigatórios (Nome, Tipo) não podem estar em branco."}), 400
-
-    conn = get_db()
-    cursor = conn.cursor()
+    conn, cursor = get_db(), None
     try:
-        query = "INSERT INTO produto (NOME_PRODUTO, TIPO_PRODUTO, DATA_LANCAMENTO) VALUES (%s, %s, %s)"
+        cursor = conn.cursor()
+        query = "INSERT INTO produto (NOME_PRODUTO, TIPO_PRODUTO, DATA_LANCAMENTO, IMAGEM_PERFIL_URL) VALUES (%s, %s, %s, %s)"
         valores = (
-            data.get('NOME_PRODUTO'), data.get('TIPO_PRODUTO'), data.get('DATA_LANCAMENTO') or None
+            data.get('NOME_PRODUTO'), data.get('TIPO_PRODUTO'), 
+            data.get('DATA_LANCAMENTO') or None, None
         )
         cursor.execute(query, valores)
         conn.commit()
@@ -679,8 +779,8 @@ def criar_produto():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 #Editar Produto
 @app.route('/api/produtos/<int:id_produto>', methods=['PUT'])
@@ -743,15 +843,21 @@ def deletar_produto(id_produto):
 # 5.1 Buscar relações
 @app.route('/api/relations/<string:entity_type>/<int:entity_id>', methods=['GET'])
 def get_relations(entity_type, entity_id):
-    conn, cursor = get_db(), None
+    conn = None
+    cursor = None
     try:
+        conn = get_db()
         cursor = conn.cursor(dictionary=True)
         relations = {}
+        
         if entity_type == 'templo':
             cursor.execute("SELECT p.*, pt.FUNCAO FROM personalidade p JOIN personalidade_templo pt ON p.ID_PERSONALIDADE = pt.ID_PT_PERSONALIDADE_FK WHERE pt.ID_PT_TEMPLO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
             cursor.execute("SELECT a.* FROM associacao a JOIN templo_associacao ta ON a.ID_ASSOCIACAO = ta.ID_TA_ASSOCIACAO_FK WHERE ta.ID_TA_TEMPLO_FK = %s", [entity_id])
             relations['associacoes'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM imagem_templo WHERE ID_TEMPLO_FK = %s", [entity_id])
+            relations['imagens_carrossel'] = cursor.fetchall()
+
         elif entity_type == 'personalidade':
             cursor.execute("SELECT t.*, pt.FUNCAO FROM templo t JOIN personalidade_templo pt ON t.ID_TEMPLO = pt.ID_PT_TEMPLO_FK WHERE pt.ID_PT_PERSONALIDADE_FK = %s", [entity_id])
             relations['templos'] = cursor.fetchall()
@@ -759,26 +865,36 @@ def get_relations(entity_type, entity_id):
             relations['associacoes'] = cursor.fetchall()
             cursor.execute("SELECT p.* FROM PRODUTO p JOIN PERSONALIDADE_PRODUTO pp ON p.ID_PRODUTO = pp.ID_PP_PRODUTO_FK WHERE pp.ID_PP_PERSONALIDADE_FK = %s", [entity_id])
             relations['produtos'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM imagem_personalidade WHERE ID_PERSONALIDADE_FK = %s", [entity_id])
+            relations['imagens_carrossel'] = cursor.fetchall()
+
         elif entity_type == 'associacao':
             cursor.execute("SELECT t.* FROM templo t JOIN templo_associacao ta ON t.ID_TEMPLO = ta.ID_TA_TEMPLO_FK WHERE ta.ID_TA_ASSOCIACAO_FK = %s", [entity_id])
             relations['templos'] = cursor.fetchall()
             cursor.execute("SELECT p.* FROM personalidade p JOIN personalidade_associacao pa ON p.ID_PERSONALIDADE = pa.ID_PA_PERSONALIDADE_FK WHERE pa.ID_PA_ASSOCIACAO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM imagem_associacao WHERE ID_ASSOCIACAO_FK = %s", [entity_id])
+            relations['imagens_carrossel'] = cursor.fetchall()
+
         elif entity_type == 'produto':
             cursor.execute("SELECT p.* FROM PERSONALIDADE p JOIN PERSONALIDADE_PRODUTO pp ON p.ID_PERSONALIDADE = pp.ID_PP_PERSONALIDADE_FK WHERE pp.ID_PP_PRODUTO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM imagem_produto WHERE ID_PRODUTO_FK = %s", [entity_id])
+            relations['imagens_carrossel'] = cursor.fetchall()
         
         for key, items in relations.items():
             for item in items:
                 for date_field in item:
                     if 'DATA' in date_field:
                         item[date_field] = format_date(item[date_field])
+                        
         return jsonify(relations)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
 
 # 5.2 Conexões do templo
 @app.route('/api/relations/templo/<int:templo_id>', methods=['POST'])
@@ -1046,6 +1162,302 @@ def get_editor_data():
         if cursor: cursor.close()
         if conn: conn.close()
 
-# --- 7. Bloco de Execução ---
+# --- 7. Imagens ------
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Rota para fazer upload da IMAGEM DE PERFIL de um templo
+@app.route('/api/templos/<int:id_templo>/imagem_perfil', methods=['POST'])
+def upload_imagem_perfil_templo(id_templo):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo de imagem enviado."}), 400
+    file = request.files['imagem']
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido."}), 400
+    
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1]
+    unique_filename = f"templo_{id_templo}_perfil_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+    
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE templo SET IMAGEM_PERFIL_URL = %s WHERE ID_TEMPLO = %s", (url_imagem, id_templo))
+        conn.commit()
+        return jsonify({"message": "Imagem de perfil atualizada.", "url": url_imagem})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+# Rota para fazer upload de uma IMAGEM DO CARROSSEL de um templo
+@app.route('/api/templos/<int:id_templo>/imagens_carrossel', methods=['POST'])
+def upload_imagem_carrossel_templo(id_templo):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo enviado."}), 400
+    file = request.files['imagem']
+    legenda = request.form.get('legenda', '')
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido."}), 400
+    
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1]
+    unique_filename = f"templo_{id_templo}_carrossel_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+    
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO imagem_templo (URL_IMAGEM, LEGENDA, ID_TEMPLO_FK) VALUES (%s, %s, %s)", (url_imagem, legenda, id_templo))
+        conn.commit()
+        return jsonify({"message": "Imagem adicionada ao carrossel.", "id": cursor.lastrowid, "url": url_imagem, "legenda": legenda}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+# Rota para DELETAR uma imagem do carrossel
+@app.route('/api/imagens_carrossel/templo/<int:id_imagem>', methods=['DELETE'])
+def deletar_imagem_carrossel_templo(id_imagem):
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_templo WHERE ID_IMAGEM = %s", (id_imagem,))
+        result = cursor.fetchone()
+        if result and os.path.exists(result['URL_IMAGEM'].strip('/')):
+            os.remove(result['URL_IMAGEM'].strip('/'))
+        
+        cursor.execute("DELETE FROM imagem_templo WHERE ID_IMAGEM = %s", (id_imagem,))
+        conn.commit()
+        return jsonify({"message": "Imagem do carrossel deletada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+# --- IMAGENS DE PERSONALIDADE ---
+@app.route('/api/personalidades/<int:id_personalidade>/imagem_perfil', methods=['POST'])
+def upload_imagem_perfil_personalidade(id_personalidade):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo enviado."}), 400
+    file = request.files['imagem']
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido."}), 400
+    
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1]
+    unique_filename = f"personalidade_{id_personalidade}_perfil_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+    
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE personalidade SET IMAGEM_PERFIL_URL = %s WHERE ID_PERSONALIDADE = %s", (url_imagem, id_personalidade))
+        conn.commit()
+        return jsonify({"message": "Imagem de perfil atualizada.", "url": url_imagem})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/personalidades/<int:id_personalidade>/imagens_carrossel', methods=['POST'])
+def upload_imagem_carrossel_personalidade(id_personalidade):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo enviado."}), 400
+    file = request.files['imagem']
+    legenda = request.form.get('legenda', '')
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido."}), 400
+    
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1]
+    unique_filename = f"personalidade_{id_personalidade}_carrossel_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+    
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO imagem_personalidade (URL_IMAGEM, LEGENDA, ID_PERSONALIDADE_FK) VALUES (%s, %s, %s)", (url_imagem, legenda, id_personalidade))
+        conn.commit()
+        return jsonify({"message": "Imagem adicionada ao carrossel.", "id": cursor.lastrowid, "url": url_imagem, "legenda": legenda}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/imagens_carrossel/personalidade/<int:id_imagem>', methods=['DELETE'])
+def deletar_imagem_carrossel_personalidade(id_imagem):
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_personalidade WHERE ID_IMAGEM = %s", (id_imagem,))
+        result = cursor.fetchone()
+        if result and os.path.exists(result['URL_IMAGEM'].strip('/')):
+            os.remove(result['URL_IMAGEM'].strip('/'))
+        
+        cursor.execute("DELETE FROM imagem_personalidade WHERE ID_IMAGEM = %s", (id_imagem,))
+        conn.commit()
+        return jsonify({"message": "Imagem do carrossel deletada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+# --- IMAGENS DE ASSOCIAÇÃO ---
+
+@app.route('/api/associacoes/<int:id_associacao>/imagem_perfil', methods=['POST'])
+def upload_imagem_perfil_associacao(id_associacao):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo de imagem enviado."}), 400
+    file = request.files['imagem']
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido ou não selecionado."}), 400
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"associacao_{id_associacao}_perfil_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE associacao SET IMAGEM_PERFIL_URL = %s WHERE ID_ASSOCIACAO = %s", (url_imagem, id_associacao))
+        conn.commit()
+        return jsonify({"message": "Imagem de perfil da associação atualizada.", "url": url_imagem})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/associacoes/<int:id_associacao>/imagens_carrossel', methods=['POST'])
+def upload_imagem_carrossel_associacao(id_associacao):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo de imagem enviado."}), 400
+    file = request.files['imagem']
+    legenda = request.form.get('legenda', '')
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido ou não selecionado."}), 400
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"associacao_{id_associacao}_carrossel_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO imagem_associacao (URL_IMAGEM, LEGENDA, ID_ASSOCIACAO_FK) VALUES (%s, %s, %s)", (url_imagem, legenda, id_associacao))
+        conn.commit()
+        return jsonify({"message": "Imagem adicionada ao carrossel da associação.", "id": cursor.lastrowid, "url": url_imagem, "legenda": legenda}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/imagens_carrossel/associacao/<int:id_imagem>', methods=['DELETE'])
+def deletar_imagem_carrossel_associacao(id_imagem):
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_associacao WHERE ID_IMAGEM = %s", (id_imagem,))
+        result = cursor.fetchone()
+        if result and result.get('URL_IMAGEM') and os.path.exists(result['URL_IMAGEM'].strip('/')):
+            os.remove(result['URL_IMAGEM'].strip('/'))
+        
+        cursor.execute("DELETE FROM imagem_associacao WHERE ID_IMAGEM = %s", (id_imagem,))
+        conn.commit()
+        return jsonify({"message": "Imagem do carrossel da associação deletada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+# --- IMAGENS DE PRODUTO ---
+
+@app.route('/api/produtos/<int:id_produto>/imagem_perfil', methods=['POST'])
+def upload_imagem_perfil_produto(id_produto):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo de imagem enviado."}), 400
+    file = request.files['imagem']
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido ou não selecionado."}), 400
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"produto_{id_produto}_perfil_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE produto SET IMAGEM_PERFIL_URL = %s WHERE ID_PRODUTO = %s", (url_imagem, id_produto))
+        conn.commit()
+        return jsonify({"message": "Imagem de perfil do produto atualizada.", "url": url_imagem})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/produtos/<int:id_produto>/imagens_carrossel', methods=['POST'])
+def upload_imagem_carrossel_produto(id_produto):
+    if 'imagem' not in request.files: return jsonify({"error": "Nenhum arquivo de imagem enviado."}), 400
+    file = request.files['imagem']
+    legenda = request.form.get('legenda', '')
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({"error": "Arquivo inválido ou não selecionado."}), 400
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"produto_{id_produto}_carrossel_{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file.save(path)
+
+    url_imagem = f'/uploads/{unique_filename}'
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO imagem_produto (URL_IMAGEM, LEGENDA, ID_PRODUTO_FK) VALUES (%s, %s, %s)", (url_imagem, legenda, id_produto))
+        conn.commit()
+        return jsonify({"message": "Imagem adicionada ao carrossel do produto.", "id": cursor.lastrowid, "url": url_imagem, "legenda": legenda}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/imagens_carrossel/produto/<int:id_imagem>', methods=['DELETE'])
+def deletar_imagem_carrossel_produto(id_imagem):
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT URL_IMAGEM FROM imagem_produto WHERE ID_IMAGEM = %s", (id_imagem,))
+        result = cursor.fetchone()
+        if result and result.get('URL_IMAGEM') and os.path.exists(result['URL_IMAGEM'].strip('/')):
+            os.remove(result['URL_IMAGEM'].strip('/'))
+        
+        cursor.execute("DELETE FROM imagem_produto WHERE ID_IMAGEM = %s", (id_imagem,))
+        conn.commit()
+        return jsonify({"message": "Imagem do carrossel do produto deletada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+# --- 8. Bloco de Execução ---
 if __name__ == '__main__': 
     app.run(debug=True)

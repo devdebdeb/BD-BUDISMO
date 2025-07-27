@@ -2,60 +2,115 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerenciar Produtos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
-    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
-    h3 { color: #3a7a5a; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px;}
-    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
-    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+    body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 30px; }
+    .container { max-width: 800px; margin: 20px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    h2 { text-align: center; color: #499a6e; margin-top: 0; margin-bottom: 30px; font-size: 2rem; }
+    h3 { color: #3a7a5a; border-top: 1px solid #eee; padding-top: 25px; margin-top: 30px; text-align: center; font-size: 1.5rem; }
+    h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    input, textarea, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: 500; font-size: 1.1rem; transition: background-color 0.3s ease; margin-top: 10px; }
     button:hover { background: #3a7a5a; }
-    .success, .error { text-align: center; margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: bold; }
-    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
-    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
-    .section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 10px;}
-    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; }
-    .related-card h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    label { font-weight: 500; color: #333; font-size: 0.9rem; display: block; text-align: left; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .full-width { grid-column: 1 / -1; }
+    .form-field { margin-bottom: 10px; text-align: left; }
+    .image-section, .related-card { margin-top: 20px; }
+    .profile-image-preview { max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #eee; display: block; margin: 10px auto; object-fit: cover; }
+    .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    .carousel-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; text-align: center; }
+    .carousel-card img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; }
+    .carousel-card button { background-color: #d9534f; font-size: 0.8rem; padding: 5px 10px; margin-top: 5px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;}
     .inline-group { display: flex; gap: 10px; align-items: flex-end; }
     .inline-group > * { flex: 1; }
-    label { font-weight: bold; color: #555; font-size: 0.9rem; }
+    .success, .error { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .related-card {
+        background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .related-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ddd;
+        flex-shrink: 0;
+    }
+    .related-content {
+        flex-grow: 1;
+    }
+    .related-content p {
+        margin: 5px 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .container { padding: 20px; } }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Gerenciar Produtos</h2>
-    <div class="section">
-      <h3>Editar ou Apagar Produto</h3>
-      <select id="entidadeSelect" onchange="carregarEntidade()">
-        <option value="">Selecione um produto</option>
-      </select>
-      <input type="text" id="edit_nome_produto" placeholder="Nome do Produto" />
-      <input type="text" id="edit_tipo_produto" placeholder="Tipo do Produto (ex: Livro, Estátua)" />
-      <label for="edit_data_lancamento">Data de Lançamento:</label>
-      <input type="date" id="edit_data_lancamento" />
-      <button onclick="atualizarEntidade()">Atualizar Produto</button>
-      <button onclick="deletarEntidade()" style="background-color:#d9534f;">Apagar Produto</button>
+    <div class="form-field full-width">
+      <label for="entidadeSelect">Selecione um produto para editar ou apagar</label>
+      <select id="entidadeSelect" onchange="carregarEntidade()"></select>
     </div>
+    
+    <div id="conteudo-edicao" style="display:none;">
+      <h3>Dados Principais</h3>
+      <div class="form-grid">
+        <div class="form-field"><label for="edit_nome_produto">Nome do Produto</label><input type="text" id="edit_nome_produto"/></div>
+        <div class="form-field"><label for="edit_tipo_produto">Tipo do Produto</label><input type="text" id="edit_tipo_produto"/></div>
+        <div class="form-field full-width"><label for="edit_data_lancamento">Data de Lançamento</label><input type="date" id="edit_data_lancamento"/></div>
+      </div>
+      <button onclick="atualizarEntidade()">Atualizar Dados do Produto</button>
+      
+      <div class="image-section">
+        <h3>Imagem de Perfil</h3>
+        <img id="imagem_perfil_preview" src="https://via.placeholder.com/200x200.png?text=Sem+Imagem" alt="Imagem de Perfil" class="profile-image-preview">
+        <label for="upload_imagem_perfil">Enviar nova imagem de perfil:</label>
+        <input type="file" id="upload_imagem_perfil">
+        <button onclick="atualizarImagemPerfil()">Salvar Imagem de Perfil</button>
+      </div>
 
-    <div class="section">
-        <h3>Personalidades Associadas (Autores, Criadores, etc.)</h3>
+      <div class="image-section">
+        <h3>Carrossel de Imagens</h3>
+        <div id="carrossel_grid" class="carousel-grid"></div>
+        <h4>Adicionar Nova Imagem ao Carrossel</h4>
+        <label for="upload_imagem_carrossel">Selecione a imagem:</label>
+        <input type="file" id="upload_imagem_carrossel">
+        <label for="legenda_imagem_carrossel">Digite uma legenda:</label>
+        <input type="text" id="legenda_imagem_carrossel" placeholder="Legenda da imagem (opcional)">
+        <button onclick="adicionarImagemCarrossel()">Adicionar Imagem ao Carrossel</button>
+      </div>
+
+      <h3>Relações</h3>
+      <div class="related-card">
+        <h4>Personalidades Associadas (Autores, etc.)</h4>
         <div id="personalidades" class="related-grid"></div>
         <div class="inline-group">
-            <select id="busca_personalidade"><option>Carregando...</option></select>
-            <button onclick="buscarAdicionar('personalidade')">Adicionar Personalidade</button>
+            <select id="busca_personalidade"></select>
+            <button onclick="buscarAdicionar('personalidade')">Adicionar</button>
         </div>
+      </div>
+
+      <button onclick="deletarEntidade()" style="background-color:#d9534f; margin-top: 30px;">Apagar Produto Permanentemente</button>
     </div>
-      
-    <div id="mensagem" style="margin-top: 20px;"></div>
+    <div id="mensagem"></div>
   </div>
 
   <script>
     const usuario = JSON.parse(localStorage.getItem("usuario"));
-    if (!usuario || !["moderador", "admin"].includes(usuario.tipo)) {
-      alert("Acesso negado.");
-      window.location.href = "login.html";
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+        alert("Acesso negado. Redirecionando para login.");
+        window.location.href = "../Administração/login.html";
     }
 
     const baseUrl = 'http://localhost:5000';
@@ -64,63 +119,76 @@
     let entidade_id = null;
 
     async function carregarTudo() {
-        await carregarEntidades(); // Carrega a lista principal de produtos
-        // Carrega a lista de personalidades para o dropdown de relações
-        const resP = await fetch(`${baseUrl}/api/personalidades?all=true`);
-        const dataP = await resP.json();
-        personalidades = dataP.data || [];
-        const selectP = document.getElementById("busca_personalidade");
-        selectP.innerHTML = '<option value="">Selecione uma personalidade</option>';
-        personalidades.forEach(p => {
-            selectP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`;
-        });
-    }
-
-    async function carregarEntidades() {
       try {
-        const res = await fetch(`${baseUrl}/api/produtos`);
-        const data = await res.json();
-        entidades = data.data || [];
-        const select = document.getElementById("entidadeSelect");
-        select.innerHTML = '<option value="">Selecione um produto</option>';
-        entidades.forEach(e => {
-          select.innerHTML += `<option value="${e.ID_PRODUTO}">${e.NOME_PRODUTO} (ID: ${e.ID_PRODUTO})</option>`;
-        });
-      } catch(err) {
-        exibirMensagem({ error: "Falha ao carregar produtos." });
-      }
+        const [resEnt, resP] = await Promise.all([
+          fetch(`${baseUrl}/api/produtos`),
+          fetch(`${baseUrl}/api/personalidades?all=true`)
+        ]);
+        entidades = (await resEnt.json()).data || [];
+        personalidades = (await resP.json()).data || [];
+
+        const selEnt = document.getElementById("entidadeSelect");
+        selEnt.innerHTML = '<option value="">Selecione um produto</option>';
+        entidades.forEach(e => { selEnt.innerHTML += `<option value="${e.ID_PRODUTO}">${e.NOME_PRODUTO} (ID: ${e.ID_PRODUTO})</option>`; });
+        
+        const selP = document.getElementById("busca_personalidade");
+        selP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => { selP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`; });
+      } catch (err) { exibirMensagem({ error: "Falha ao carregar dados iniciais." }); }
     }
 
     function limparFormulario() {
-        document.getElementById('edit_nome_produto').value = '';
-        document.getElementById('edit_tipo_produto').value = '';
-        document.getElementById('edit_data_lancamento').value = '';
-        document.getElementById('personalidades').innerHTML = '';
+      document.getElementById('conteudo-edicao').style.display = 'none';
+      document.getElementById('entidadeSelect').value = '';
+      const ids = ["edit_nome_produto", "edit_tipo_produto", "edit_data_lancamento"];
+      ids.forEach(id => document.getElementById(id).value = '');
+      document.getElementById('imagem_perfil_preview').src = 'https://via.placeholder.com/200x200.png?text=Sem+Imagem';
+      document.getElementById('personalidades').innerHTML = '';
+      document.getElementById('carrossel_grid').innerHTML = '';
     }
 
     async function carregarEntidade() {
-        entidade_id = document.getElementById("entidadeSelect").value;
-        if(!entidade_id) {
-            limparFormulario();
-            return;
-        }
-        const entidade = entidades.find(e => e.ID_PRODUTO == entidade_id);
-        if(!entidade) return;
-        
-        document.getElementById("edit_nome_produto").value = entidade.NOME_PRODUTO || '';
-        document.getElementById("edit_tipo_produto").value = entidade.TIPO_PRODUTO || '';
-        document.getElementById("edit_data_lancamento").value = entidade.DATA_LANCAMENTO || '';
-        await carregarRelacoes();
-    }
+      entidade_id = document.getElementById("entidadeSelect").value;
+      if (!entidade_id) { limparFormulario(); return; }
+      document.getElementById('conteudo-edicao').style.display = 'block';
+      const entidade = entidades.find(e => e.ID_PRODUTO == entidade_id);
+      if (!entidade) return;
+      
+      document.getElementById('edit_nome_produto').value = entidade.NOME_PRODUTO || '';
+      document.getElementById('edit_tipo_produto').value = entidade.TIPO_PRODUTO || '';
+      document.getElementById('edit_data_lancamento').value = entidade.DATA_LANCAMENTO || '';
 
+      if (entidade.IMAGEM_PERFIL_URL) {
+        document.getElementById('imagem_perfil_preview').src = `${baseUrl}${entidade.IMAGEM_PERFIL_URL}?t=${new Date().getTime()}`;
+      } else {
+        document.getElementById('imagem_perfil_preview').src = 'https://via.placeholder.com/200x200.png?text=Sem+Imagem';
+      }
+      await carregarRelacoes();
+    }
+    
     async function carregarRelacoes() {
         if(!entidade_id) return;
         const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`);
         const data = await res.json();
-        const div = document.getElementById('personalidades');
-        div.innerHTML = '';
+        
+        const divP = document.getElementById('personalidades');
+        divP.innerHTML = '';
         (data.personalidades || []).forEach(p => {
-            div.innerHTML += `<div class="related-card"><h4>${p.NOME_PERSONALIDADE}</h4><button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button></div>`;
+            const imagemHtml = p.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="${p.NOME_PERSONALIDADE}" class="related-image">` : '';
+            divP.innerHTML += `
+                <div class="related-card">
+                    ${imagemHtml}
+                    <div class="related-content">
+                        <h4>${p.NOME_PERSONALIDADE}</h4>
+                        <button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button>
+                    </div>
+                </div>`;
+        });
+
+        const grid = document.getElementById('carrossel_grid');
+        grid.innerHTML = '';
+        (data.imagens_carrossel || []).forEach(img => {
+            grid.innerHTML += `<div class="carousel-card"><img src="${baseUrl}${img.URL_IMAGEM}" alt="${img.LEGENDA || ''}"><p>${img.LEGENDA || 'Sem legenda'}</p><button onclick="deletarImagemCarrossel(${img.ID_IMAGEM})">Apagar</button></div>`;
         });
     }
 
@@ -136,52 +204,77 @@
       if (!entidade_id) return exibirMensagem({error: "Selecione um produto para atualizar."});
       const data = getData();
       const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-      const json = await res.json();
-      exibirMensagem(json);
+      exibirMensagem(await res.json());
       if (res.ok) {
-        await carregarEntidades();
-        document.getElementById('entidadeSelect').value = entidade_id;
+        const index = entidades.findIndex(e => e.ID_PRODUTO == entidade_id);
+        if(index !== -1) {
+            entidades[index] = { ...entidades[index], ...data };
+            document.querySelector(`#entidadeSelect option[value='${entidade_id}']`).textContent = `${data.NOME_PRODUTO} (ID: ${entidade_id})`;
+        }
       }
     }
 
     async function deletarEntidade() {
-      if (!entidade_id) return exibirMensagem({error: "Selecione um produto para apagar."});
-      if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+      if (!entidade_id || !confirm("Tem certeza que esta ação não pode ser desfeita?")) return;
       const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}`, { method: 'DELETE' });
-      const json = await res.json();
-      exibirMensagem(json);
-      if (res.ok) {
-        document.getElementById("entidadeSelect").value = '';
-        limparFormulario();
-        carregarEntidades();
-      }
+      exibirMensagem(await res.json());
+      if (res.ok) { limparFormulario(); await carregarTudo(); }
     }
-
+    
     async function buscarAdicionar(tipo) {
         const select = document.getElementById(`busca_${tipo}`);
         const id_rel = select.value;
-        if (!id_rel) return exibirMensagem({error: `Selecione um(a) ${tipo} para adicionar.`});
+        if (!id_rel) return;
         await adicionarConexao(tipo, id_rel);
     }
     
     async function adicionarConexao(tipo, id_rel) {
-        if (!entidade_id) return exibirMensagem({error: "Selecione um produto primeiro."});
+        if (!entidade_id) return;
         const payload = { tipo, id_rel };
-        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        exibirMensagem(json);
+        const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        exibirMensagem(await res.json());
         if (res.ok) await carregarRelacoes();
     }
 
     async function removerConexao(tipo, id_rel) {
         if (!confirm(`Remover esta conexão de ${tipo}?`)) return;
         const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+        exibirMensagem(await res.json());
+        if (res.ok) await carregarRelacoes();
+    }
+    
+    async function atualizarImagemPerfil() {
+        if (!entidade_id) return;
+        const input = document.getElementById('upload_imagem_perfil');
+        if (input.files.length === 0) return exibirMensagem({error: "Selecione uma imagem."});
+        const formData = new FormData();
+        formData.append('imagem', input.files[0]);
+        const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}/imagem_perfil`, { method: 'POST', body: formData });
         const json = await res.json();
         exibirMensagem(json);
+        if (res.ok) {
+            document.getElementById('imagem_perfil_preview').src = `${baseUrl}${json.url}?t=${new Date().getTime()}`;
+            input.value = '';
+        }
+    }
+
+    async function adicionarImagemCarrossel() {
+        if (!entidade_id) return;
+        const input = document.getElementById('upload_imagem_carrossel');
+        const legenda = document.getElementById('legenda_imagem_carrossel').value;
+        if (input.files.length === 0) return exibirMensagem({error: "Selecione uma imagem."});
+        const formData = new FormData();
+        formData.append('imagem', input.files[0]);
+        formData.append('legenda', legenda);
+        const res = await fetch(`${baseUrl}/api/produtos/${entidade_id}/imagens_carrossel`, { method: 'POST', body: formData });
+        exibirMensagem(await res.json());
+        if (res.ok) { await carregarRelacoes(); input.value = ''; document.getElementById('legenda_imagem_carrossel').value = ''; }
+    }
+    
+    async function deletarImagemCarrossel(idImagem) {
+        if (!confirm("Apagar esta imagem?")) return;
+        const res = await fetch(`${baseUrl}/api/imagens_carrossel/${entidade_tipo}/${idImagem}`, { method: 'DELETE' });
+        exibirMensagem(await res.json());
         if (res.ok) await carregarRelacoes();
     }
 
