@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Templos - BD Budismo</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos de tabela (se ainda não movidos para style.css) */
+        .data-table-container { width: 100%; overflow-x: auto; margin-top: 30px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px; background-color: #fff; }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 0.95em; }
+        .data-table th { background-color: #f2f2f2; font-weight: bold; color: #555; text-transform: uppercase; font-size: 0.85em; }
+        .data-table tbody tr:hover { background-color: #f9f9f9; }
+        .data-table tbody tr:nth-child(even) { background-color: #fefefe; }
+        #loading-message, #error-message { text-align: center; padding: 20px; font-size: 1.1em; color: #666; }
+        #error-message { color: #dc3545; }
+        /* Estilos do botão de detalhes */
+        .detalhes-btn {
+            background: #007bff; /* Cor azul para o botão */
+            color: #fff;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: background 0.3s;
+            cursor: pointer; /* Indica que é clicável */
+            font-size: 0.9em;
+        }
+        .detalhes-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BD Budismo</h1>
+<nav>
+    <ul>
+        <li><a href="default.html">Início</a></li>
+        <li><a href="templos.html">Templos</a></li>
+        <li><a href="associacoes.html">Associações</a></li>
+        <li><a href="personalidades.html">Personalidades</a></li>
+        <li><a href="produtos.html">Produtos</a></li>
+        <li><a href="visualizacao.html">Visualizações Power BI</a></li>
+        <li><a href="mapa_visualizacao.html">Visualizações do Mapa</a></li>
+        
+        <li><a href="../Administração/login.html" class="login-btn">Login</a></li>
+    </ul>
+</nav>
+    </header>
+
+    <main>
+        <section class="content-section">
+            <h2>Templos Budistas</h2>
+            <p>Explore a lista de templos budistas na América Latina e Caribe, descubra suas histórias e suas contribuições para a comunidade.</p>
+
+            <div id="templos-table-container" class="data-table-container">
+                <p id="loading-message">Carregando templos...</p>
+                <p id="error-message" style="display:none;"></p>
+            </div>
+
+            <p>Cada templo é um centro de paz e aprendizado. Conecte-se com a sabedoria budista ao explorar esses espaços sagrados.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+        <img src="brasao_puc.png" alt="Brasão PUC">
+        <img src="cnpq.png" alt="CNPq">
+    </footer>
+
+    <div id="temploDetailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h3 id="modal-templo-nome"></h3>
+            <div id="modal-templo-details-body">
+                <p>Carregando...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+    const schoolTranslations = {
+                    'T': 'Theravada', 'M': 'Mahayana', 'Et': 'Étnico chinês/taiwanês', 'Ch': 'Chan', 'Fo': 'Fo Guang Shan',
+                    'Co': 'Coreano', 'Sh': 'Shin', 'Sg': 'Shingon', 'Td': 'Tendai', 'Ni': 'Nichiren-shu', 'N2': 'Ramos do espectro Nichiren',
+                    'SG': 'Soka Gakkai', 'Zn': 'Zen', 'Vi': 'Vietnamita', 'Vaj': 'Vajrayana', 'Bö': 'Bön (budismo tibetano)',
+                    'Ny': 'Nyingma', 'Kg': 'Kagyu', 'Sk': 'Sakya', 'Gg': 'Gelug', 'NK': 'New Kadampa', 'E': 'Budismo tibetano ecumênico',
+                    'Ns': 'Não-sectário', 'Na': 'Associações budistas nacionais'
+                };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const tableContainer = document.getElementById('templos-table-container');
+            const loadingMessage = document.getElementById('loading-message');
+            const errorMessage = document.getElementById('error-message');
+
+            // Elementos do Modal
+            const modalOverlay = document.getElementById('temploDetailsModal');
+            const modalCloseBtn = modalOverlay.querySelector('.modal-close-btn');
+            const modalTemploNome = document.getElementById('modal-templo-nome');
+            const modalTemploDetailsBody = document.getElementById('modal-templo-details-body');
+
+            // Event Listeners do Modal
+            modalCloseBtn.addEventListener('click', () => {
+                modalOverlay.classList.remove('active');
+            });
+            modalOverlay.addEventListener('click', (e) => {
+                // Fecha o modal se clicar fora do conteúdo
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                }
+            });
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/templos?all=true');
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP! Status: ${response.status}`);
+                }
+                const responseData = await response.json();
+                const templos = responseData.data;
+
+                if (templos.length === 0) {
+                    loadingMessage.textContent = 'Nenhum templo encontrado.';
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.classList.add('data-table');
+
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                // Nomes das colunas a serem EXIBIDAS na tabela e sua ordem
+                const columnsToDisplay = [
+                    'NOME',
+                    'PAIS',
+                    'ESTADO',
+                    'MUNICIPIO',
+                    'VEICULO',
+                    'ESCOLA',
+                    'CODIGO_POSTAL',
+                    'PUBLICO_ALVO',
+                    'DATA_ABERTURA_TEMPLO',
+                    'DATA_FECHAMENTO_TEMPLO'
+                ];
+
+                // Mapeamento de nomes de colunas do DB para cabeçalhos amigáveis na tabela
+                const friendlyHeaders = {
+                    'NOME': 'Nome do Templo',
+                    'PAIS': 'País',
+                    'ESTADO': 'Estado', 
+                    'MUNICIPIO': 'Município',
+                    'ESCOLA': 'Escola', 
+                    'VEICULO': 'Veículo',
+                    'CODIGO_POSTAL': 'Código Postal',
+                    'PUBLICO_ALVO': 'Público Alvo',
+                    'DATA_ABERTURA': 'Data de Abertura',
+                    'DATA_FECHAMENTO': 'Data de Fechamento',
+                    'CAMPO_INFO_TEMPLO': 'Informações Adicionais'
+                };
+
+                // Cria os cabeçalhos da tabela
+                columnsToDisplay.forEach(colName => {
+                    const th = document.createElement('th');
+                    th.textContent = friendlyHeaders[colName] || colName.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+                    headerRow.appendChild(th);
+                });
+                // Adiciona o cabeçalho para a coluna de Ações/Detalhes
+                const thAcoes = document.createElement('th');
+                thAcoes.textContent = 'Detalhes';
+                headerRow.appendChild(thAcoes);
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Cria o corpo da tabela
+                const tbody = document.createElement('tbody');
+                templos.forEach(templo => {
+                    const tr = document.createElement('tr');
+                    columnsToDisplay.forEach(colName => {
+                        const td = document.createElement('td');
+                        // Lógica de formatação para valores específicos na tabela principal
+                        if (colName === 'PUBLICO_ALVO') {
+                             td.textContent = templo[colName] === '1' ? 'Étnico' : (templo[colName] === '0' ? 'Conversão' : 'N/A');
+                        } else if (colName === 'ESCOLA') {
+                            td.textContent = schoolTranslations[templo[colName]] || templo[colName] || 'N/A';
+                        }
+                        else {
+                            td.textContent = templo[colName] || 'N/A';
+                        }
+                        tr.appendChild(td);
+                    });
+                    // Adiciona o botão "Ver mais" na última célula
+                    const tdAcoes = document.createElement('td');
+                    const verMaisBtn = document.createElement('button');
+                    verMaisBtn.classList.add('detalhes-btn');
+                    verMaisBtn.textContent = 'Ver mais';
+                    verMaisBtn.dataset.id = templo.ID_TEMPLO; // Armazena o ID no dataset do botão
+                    verMaisBtn.addEventListener('click', () => showTemploDetailsModal(templo.ID_TEMPLO)); // Evento para abrir o modal
+                    tdAcoes.appendChild(verMaisBtn);
+                    tr.appendChild(tdAcoes);
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+
+                loadingMessage.style.display = 'none';
+                tableContainer.appendChild(table);
+
+            } catch (error) {
+                console.error('Erro ao buscar templos:', error);
+                loadingMessage.style.display = 'none';
+                errorMessage.textContent = 'Erro ao carregar os dados dos templos. Verifique a API do backend e sua conexão.';
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // Função para mostrar os detalhes do templo em um modal
+        async function showTemploDetailsModal(temploId) {
+            const modalOverlay = document.getElementById('temploDetailsModal');
+            const modalTemploNome = document.getElementById('modal-templo-nome');
+            const modalTemploDetailsBody = document.getElementById('modal-templo-details-body');
+
+            modalTemploNome.textContent = 'Carregando...';
+            modalTemploDetailsBody.innerHTML = '<p>Buscando informações do templo...</p>';
+            modalOverlay.classList.add('active'); // Mostra o overlay
+
+            try {
+                // Busca os detalhes do templo usando o endpoint de detalhes individuais
+                const response = await fetch(`http://127.0.0.1:5000/api/templos?id=${temploId}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Templo não encontrado.');
+                    }
+                    throw new Error(`Erro HTTP! Status: ${response.status}`);
+                }
+                const templo = await response.json(); // Este endpoint retorna o objeto diretamente
+
+                modalTemploNome.textContent = templo.NOME || 'Templo Desconhecido';
+                modalTemploDetailsBody.innerHTML = ''; // Limpa o conteúdo de carregamento
+
+                // Defina as colunas a serem exibidas no MODAL e seus rótulos amigáveis
+                const modalDetailsColumns = [
+                    'NOME', 'CAMPO_INFO_TEMPLO'
+                    // Adicione outras colunas do seu DB que você queira mostrar no modal aqui
+                ];
+
+                const friendlyLabels = {
+                    'CAMPO_INFO_TEMPLO': 'Informações adicionais: '
+                    // Adicione mapeamentos para outras colunas aqui
+                };
+
+                modalDetailsColumns.forEach(colName => {
+                    let value = templo[colName] || 'N/A';
+
+                    if (colName === 'PUBLICO_ALVO') {
+                        value = templo[colName] === '1' ? 'Étnico' : (templo[colName] === '0' ? 'Conversão' : 'N/A');
+                    } else if (colName === 'ESCOLA') {
+                        value = schoolTranslations[templo[colName]] || templo[colName] || 'N/A';
+                    }
+                    // Adicione outras formatações específicas para o modal se necessário
+
+                    const detailItem = document.createElement('div');
+                    detailItem.classList.add('modal-detail-item');
+                    detailItem.innerHTML = `<strong>${friendlyLabels[colName] || colName.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}</strong> <span>${value}</span>`;
+                    modalTemploDetailsBody.appendChild(detailItem);
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes do templo no modal:', error);
+                modalTemploNome.textContent = 'Erro';
+                modalTemploDetailsBody.innerHTML = `<p style="color: #dc3545;">${error.message || 'Não foi possível carregar os detalhes do templo.'}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

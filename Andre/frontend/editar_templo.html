@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Templos</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    input, textarea, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; }
+    button:hover { background: #3a7a5a; }
+    .success, .error { text-align: center; margin-top: 10px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+    .section { margin-top: 30px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+    .related-card { background: #fff; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.08); padding: 15px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .related-card:hover { transform: translateY(-3px); box-shadow: 0 5px 10px rgba(0,0,0,0.12); }
+    .related-card h3 { font-size: 1.3rem; margin-bottom: 8px; color: #499a6e; }
+    .related-card .btn { display: inline-block; background: #499a6e; color: #fff; padding: 7px 12px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; }
+    .related-card .btn:hover { background: #3a7a5a; }
+    .inline-group { display: flex; gap: 10px; align-items: end; }
+    .inline-group > * { flex: 1; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Templos</h2>
+
+    <div class="section">
+      <h3>Editar ou Apagar Templo Existente</h3>
+      <select id="temploSelect" onchange="carregarTemplo()">
+        <option value="">Selecione um templo</option>
+      </select>
+
+      <input type="text" id="edit_nome" placeholder="Nome" />
+      <input type="text" id="edit_pais" placeholder="País" />
+      <input type="text" id="edit_estado" placeholder="Estado" />
+      <input type="text" id="edit_escola" placeholder="Escola" />
+      <input type="date" id="edit_data_abertura" />
+      <input type="date" id="edit_data_fechamento" />
+      <textarea id="edit_campo_info" placeholder="Texto Informacional"></textarea>
+
+      <button onclick="atualizarTemplo()">Atualizar</button>
+      <button onclick="deletarTemplo()">Apagar</button>
+
+      <h3>Personalidades Associadas</h3>
+      <div id="personalidades" class="related-grid"></div>
+      <div class="inline-group">
+        <select id="busca_personalidade">
+          <option value="">Selecione uma personalidade</option>
+        </select>
+        <input type="text" id="funcao_personalidade" placeholder="Função (ex: Fundador, Abade, Mestre)" />
+        <button onclick="buscarAdicionar('personalidade')">Adicionar</button>
+      </div>
+
+      <h3>Associações Vinculadas</h3>
+      <div id="associacoes" class="related-grid"></div>
+      <select id="busca_associacao">
+        <option value="">Selecione uma associação</option>
+      </select>
+      <button onclick="buscarAdicionar('associacao')">Adicionar</button>
+
+      <button onclick="removerTodas('personalidade')">Remover Todas as Personalidades</button>
+      <button onclick="removerTodas('associacao')">Remover Todas as Associações</button>
+      <div id="mensagem"></div>
+    </div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    const apiTemplos = `${baseUrl}/api/templos`;
+    let templos = [];
+    let personalidades = [];
+    let associacoes = [];
+    let templo_id = null;
+
+    async function carregarTemplos() {
+      try {
+        const res = await fetch(`${apiTemplos}?all=true`);
+        const data = await res.json();
+        templos = data.data || [];
+        const select = document.getElementById("temploSelect");
+        select.innerHTML = '<option value="">Selecione um templo</option>';
+        templos.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.ID_TEMPLO;
+          opt.textContent = `${t.NOME} (${t.ID_TEMPLO})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function carregarEntidades() {
+      try {
+        // Carregar Personalidades
+        const resP = await fetch(`${baseUrl}/api/personalidades?all=true`);
+        const dataP = await resP.json();
+        personalidades = dataP.data || [];
+        const selectP = document.getElementById("busca_personalidade");
+        selectP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.ID_PERSONALIDADE;
+          opt.textContent = `${p.NOME_PERSONALIDADE} (${p.ID_PERSONALIDADE})`;
+          selectP.appendChild(opt);
+        });
+
+        // Carregar Associações
+        const resA = await fetch(`${baseUrl}/api/associacoes?all=true`);
+        const dataA = await resA.json();
+        associacoes = dataA.data || [];
+        const selectA = document.getElementById("busca_associacao");
+        selectA.innerHTML = '<option value="">Selecione uma associação</option>';
+        associacoes.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.ID_ASSOCIACAO;
+          opt.textContent = `${a.NOME_ASSOCIACAO} (${a.ID_ASSOCIACAO})`;
+          selectA.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function carregarTemplo() {
+      templo_id = document.getElementById("temploSelect").value;
+      const templo = templos.find(t => t.ID_TEMPLO == templo_id);
+      if (!templo) return;
+      document.getElementById("edit_nome").value = templo.NOME || '';
+      document.getElementById("edit_pais").value = templo.PAIS || '';
+      document.getElementById("edit_estado").value = templo.ESTADO || '';
+      document.getElementById("edit_escola").value = templo.ESCOLA || '';
+      document.getElementById("edit_data_abertura").value = templo.DATA_ABERTURA_TEMPLO ? templo.DATA_ABERTURA_TEMPLO.substring(0,10) : '';
+      document.getElementById("edit_data_fechamento").value = templo.DATA_FECHAMENTO_TEMPLO ? templo.DATA_FECHAMENTO.substring(0,10) : '';
+      document.getElementById("edit_campo_info").value = templo.CAMPO_INFO_TEMPLO || '';
+      carregarRelacoes();
+    }
+
+    async function carregarRelacoes() {
+      try {
+        const res = await fetch(`${baseUrl}/api/relations/templo/${templo_id}`);
+        const data = await res.json();
+        const ulP = document.getElementById('personalidades');
+        const ulA = document.getElementById('associacoes');
+        ulP.innerHTML = '';
+        ulA.innerHTML = '';
+
+        data.personalidades.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'related-card';
+          card.innerHTML = `
+            <h3>${p.NOME_PERSONALIDADE}</h3>
+            <p><strong>Personalidade</strong></p>
+            ${p.FUNCAO ? `<p><strong>Função:</strong> ${p.FUNCAO}</p>` : ''}
+            <a class="btn" href="detalhes.html?id=${p.ID_PERSONALIDADE}&type=personalidade">Ver detalhes</a>
+            <button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button>
+            <button onclick="editarEntidade('personalidade', ${p.ID_PERSONALIDADE})">Editar</button>
+          `;
+          ulP.appendChild(card);
+        });
+
+        data.associacoes.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'related-card';
+          card.innerHTML = `
+            <h3>${a.NOME_ASSOCIACAO}</h3>
+            <p><strong>Associação</strong></p>
+            <a class="btn" href="detalhes.html?id=${a.ID_ASSOCIACAO}&type=associacao">Ver detalhes</a>
+            <button onclick="removerConexao('associacao', ${a.ID_ASSOCIACAO})">Remover</button>
+            <button onclick="editarEntidade('associacao', ${a.ID_ASSOCIACAO})">Editar</button>
+          `;
+          ulA.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function buscarAdicionar(tipo) {
+      const select = document.getElementById(`busca_${tipo}`);
+      const id_rel = select.value;
+      if (!id_rel) {
+        exibirMensagem({error: `Selecione um${tipo === 'personalidade' ? 'a' : 'a'} ${tipo}.`});
+        return;
+      }
+      
+      let funcao = null;
+      if (tipo === 'personalidade') {
+        funcao = document.getElementById('funcao_personalidade').value.trim();
+        // Se não informar função, usar valor padrão
+        if (!funcao) {
+          funcao = 'Função não especificada';
+        }
+      }
+      
+      await adicionarConexao(tipo, id_rel, funcao);
+    }
+
+    async function adicionarConexao(tipo, id_rel, funcao = null) {
+      const payload = { tipo, id_rel };
+      
+      // Para personalidades, sempre incluir o campo funcao
+      if (tipo === 'personalidade') {
+        payload.funcao = funcao || 'Não especificado'; // Valor padrão se vazio
+      }
+      
+      console.log('Enviando payload:', payload); // Debug
+      
+      try {
+        const res = await fetch(`${baseUrl}/api/relations/templo/${templo_id}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const json = await res.json();
+        
+        if (json.message) {
+          // Limpar campos após sucesso
+          document.getElementById(`busca_${tipo}`).value = '';
+          if (tipo === 'personalidade') {
+            document.getElementById('funcao_personalidade').value = '';
+          }
+        }
+        
+        exibirMensagem(json);
+        carregarRelacoes();
+      } catch (error) {
+        console.error('Erro ao adicionar conexão:', error);
+        exibirMensagem({error: 'Erro ao conectar com o servidor: ' + error.message});
+      }
+    }
+
+    async function removerConexao(tipo, id_rel) {
+      if (!confirm(`Tem certeza que deseja remover esta ${tipo}?`)) {
+        return;
+      }
+      
+      const res = await fetch(`${baseUrl}/api/relations/templo/${templo_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+      const json = await res.json();
+      exibirMensagem(json);
+      carregarRelacoes();
+    }
+
+    function editarEntidade(tipo, id) {
+      window.location.href = `/editar_${tipo}.html?id=${id}`;
+    }
+
+    async function atualizarTemplo() {
+      if (!templo_id) return exibirMensagem({error: "Selecione um templo para atualizar."});
+      const data = getData('edit_','edit_');
+      const res = await fetch(`${apiTemplos}/${templo_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      const json = await res.json();
+      exibirMensagem(json);
+      carregarTemplos();
+    }
+
+    async function deletarTemplo() {
+      if (!templo_id) return exibirMensagem({error: "Selecione um templo para apagar."});
+      
+      if (!confirm("Tem certeza que deseja apagar este templo? Esta ação não pode ser desfeita.")) {
+        return;
+      }
+      
+      const res = await fetch(`${apiTemplos}/${templo_id}`, { method: 'DELETE' });
+      const json = await res.json();
+      exibirMensagem(json);
+      carregarTemplos();
+      
+      // Limpar formulário após deletar
+      if (json.message) {
+        document.getElementById("temploSelect").value = '';
+        templo_id = null;
+        ['edit_nome', 'edit_pais', 'edit_estado', 'edit_escola', 'edit_data_abertura', 'edit_data_fechamento', 'edit_campo_info'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('personalidades').innerHTML = '';
+        document.getElementById('associacoes').innerHTML = '';
+      }
+    }
+
+    function getData(prefix='', infoPrefix='') {
+      return {
+        NOME: document.getElementById(`${prefix}nome`).value.trim(),
+        PAIS: document.getElementById(`${prefix}pais`).value.trim(),
+        ESTADO: document.getElementById(`${prefix}estado`).value.trim(),
+        ESCOLA: document.getElementById(`${prefix}escola`).value.trim(),
+        DATA_ABERTURA_TEMPLO: document.getElementById(`${prefix}data_abertura`).value,
+        DATA_FECHAMENTO_TEMPLO: document.getElementById(`${prefix}data_fechamento`).value,
+        CAMPO_INFO_TEMPLO: document.getElementById(`${infoPrefix}campo_info`).value.trim()
+      };
+    }
+
+    function exibirMensagem(res) {
+      const el = document.getElementById("mensagem");
+      el.textContent = res.message || res.error;
+      el.className = res.message ? "success" : "error";
+      
+      // Auto-limpar mensagem após 5 segundos
+      setTimeout(() => {
+        el.textContent = '';
+        el.className = '';
+      }, 5000);
+    }
+
+    async function removerTodas(tipo) {
+      if (!confirm(`Tem certeza que deseja remover todas as ${tipo}s associadas a este templo?`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${baseUrl}/api/relations/templo/${templo_id}`);
+        const data = await res.json();
+        const items = tipo === 'personalidade' ? data.personalidades : data.associacoes;
+        
+        for (const item of items) {
+          const id = tipo === 'personalidade' ? item.ID_PERSONALIDADE : item.ID_ASSOCIACAO;
+          await fetch(`${baseUrl}/api/relations/templo/${templo_id}?tipo=${tipo}&id_rel=${id}`, { method: 'DELETE' });
+        }
+        
+        exibirMensagem({message: `Todas as ${tipo}s foram removidas com sucesso.`});
+        carregarRelacoes();
+      } catch (err) {
+        console.error(err);
+        exibirMensagem({error: `Erro ao remover ${tipo}s.`});
+      }
+    }
+
+    // Inicializações
+    carregarTemplos();
+    carregarEntidades();
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!-- admin.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Administrador</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f4f6f8; padding: 30px; }
+    h1 { color: #499a6e; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .secao { margin-top: 30px; }
+    button { padding: 10px 20px; margin: 5px 0; background: #499a6e; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #3a7a5a; }
+    .moderador-item { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+    .moderador-item span { flex: 1; }
+    .moderador-item button { margin-left: 10px; padding: 5px 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bem-vindo(a), Administrador</h1>
+
+    <div class="secao">
+      <h2>Gerenciar Moderadores</h2>
+      <button onclick="location.href='criar_usuario.html'">Criar novo moderador</button>
+      <button onclick="listarModeradores()">Listar moderadores</button>
+      <div id="lista-moderadores"></div>
+    </div>
+
+    <div class="secao">
+      <h2>Gerenciar Dados</h2>
+      <button onclick="location.href='editor.html'">Acessar painel de entidades</button>
+    </div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || usuario.tipo !== "admin") {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+
+    async function listarModeradores() {
+      const res = await fetch('http://localhost:5000/api/usuarios?tipo=moderador');
+      const data = await res.json();
+      const container = document.getElementById('lista-moderadores');
+      container.innerHTML = '';
+      data.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'moderador-item';
+        div.innerHTML = `
+          <span>${user.NOME} (ID: ${user.ID_USUARIO})</span>
+          <button onclick="editarUsuario(${user.ID_USUARIO}, '${user.NOME}')">Editar</button>
+          <button onclick="apagarUsuario(${user.ID_USUARIO})">Apagar</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function editarUsuario(id, nome) {
+      localStorage.setItem('usuario_edicao', JSON.stringify({ id, nome }));
+      window.location.href = 'editar_usuario.html';
+    }
+
+    async function apagarUsuario(id) {
+      if (!confirm("Tem certeza que deseja apagar este moderador?")) return;
+      const res = await fetch(`http://localhost:5000/api/usuarios/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      alert(json.message || json.error);
+      listarModeradores();
+    }
+  </script>
+</body>
+</html>

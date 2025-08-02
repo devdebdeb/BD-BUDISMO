@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizações do Mapa - BD Budismo</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos específicos para a seção do mapa */
+        #map {
+            height: 600px; /* Altura do mapa - ajuste conforme necessário */
+            width: 100%; /* Ocupa a largura total do content-section */
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilo para as InfoWindows */
+        .gm-style-iw-d {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        .gm-style-iw-d h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .gm-style-iw-d p {
+            margin-bottom: 5px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BD Budismo</h1>
+        <nav>
+            <ul>
+                <li><a href="default.html" class="active">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html">Personalidades</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="visualizacao.html">Visualizações Power BI</a></li>
+                <li><a href="mapa_visualizacao.html">Visualizações do Mapa</a></li>
+                </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="content-section">
+            <h2>Mapa Interativo de Dados Budistas</h2>
+            <p>Explore a distribuição geográfica e os dados de templos/associações budistas.</p>
+
+            <div id="map"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+        <img src="brasao_puc.png" alt="Brasão PUC">
+        <img src="cnpq.png" alt="CNPq">
+    </footer>
+
+    <script>
+        let map;
+
+        async function initMap() {
+            // Posição inicial do mapa (pode ser o centro da América Latina/Caribe)
+            const initialLatLng = { lat: -15.0, lng: -60.0 };
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 4,
+                center: initialLatLng,
+                mapTypeId: 'roadmap'
+            });
+
+            await fetchAndDisplayMapData();
+        }
+
+        async function fetchAndDisplayMapData() {
+            try {
+                // Requisição ao endpoint da API para obter dados de mapa
+                const response = await fetch('http://127.0.0.1:5000/api/map_data');
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP! Status: ${response.status}`);
+                }
+                const data = await response.json(); // Acessa o array diretamente, pois /api/map_data não tem "data" encapsulado
+
+                if (data.length === 0) {
+                    console.warn('Nenhum dado de mapa encontrado.');
+                    return;
+                }
+
+                data.forEach(item => {
+                    if (item.latitude && item.longitude) {
+                        const marker = new google.maps.Marker({
+                            position: { lat: item.latitude, lng: item.longitude },
+                            map: map,
+                            title: item.name
+                        });
+
+                        let infoContent = `
+                            <h3>${item.name || 'Local Desconhecido'}</h3>
+                            <p>${item.address || 'Endereço não disponível'}</p>
+                        `;
+                        if (item.value !== undefined && item.value !== null) {
+                            infoContent += `<p><strong>Dados de Visualização:</strong> ${item.value}</p>`;
+                        }
+
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: infoContent,
+                        });
+
+                        marker.addListener("click", () => {
+                            infoWindow.open(map, marker);
+                        });
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro ao buscar ou exibir dados do mapa:", error);
+                alert("Não foi possível carregar os dados do mapa. Por favor, verifique a API do backend e sua chave do Google Maps.");
+            }
+        }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=SUA_API_KEY_DO_Maps&callback=initMap"></script>
+</body>
+</html>
