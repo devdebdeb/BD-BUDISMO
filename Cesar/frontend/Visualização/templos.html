@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Templos Budistas - América Latina</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -19,7 +20,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
       background: #fff;
       border-radius: 12px;
@@ -41,6 +42,7 @@
     }
     .filtros input {
       flex: 1;
+      min-width: 150px;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -58,6 +60,7 @@
       padding: 15px;
       text-align: left;
       border-bottom: 1px solid #eee;
+      vertical-align: middle;
     }
     th {
       background: var(--primary-color);
@@ -74,14 +77,39 @@
       border-radius: 20px;
       text-decoration: none;
       transition: background 0.3s;
+      white-space: nowrap;
+      cursor: pointer; /* Adicionado para botões */
     }
     .detalhes-btn:hover {
       background: var(--secondary-color);
+    }
+    .detalhes-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
     }
     .loading {
       text-align: center;
       margin-top: 20px;
       color: var(--text-dark);
+    }
+    .profile-image-table {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ddd;
+    }
+    .placeholder-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+        font-size: 1.5rem;
+        font-weight: bold;
     }
   </style>
 </head>
@@ -96,12 +124,23 @@
           <datalist id="paises"></datalist>
           <input type="text" id="escola" list="escolas" placeholder="Filtrar por escola" oninput="filtrarTemplos()" />
           <datalist id="escolas"></datalist>
+          
+          <input type="text" onfocus="(this.type='date')" onblur="(this.type='text')" id="dataInicio" placeholder="Aberto de:" onchange="filtrarTemplos()">
+          <input type="text" onfocus="(this.type='date')" onblur="(this.type='text')" id="dataFim" placeholder="Aberto até:" onchange="filtrarTemplos()">
         </div>
       </div>
+      
+      <div style="text-align: right; margin-bottom: 10px;">
+          <button id="exportar-btn" class="detalhes-btn" style="background-color: #3a7a5a;" disabled>
+              Exportar para Excel
+          </button>
+      </div>
+
       <div class="tabela-container">
         <table id="templos">
           <thead>
             <tr>
+              <th>Imagem</th>
               <th>Nome</th>
               <th>País</th>
               <th>Escola</th>
@@ -117,47 +156,36 @@
     </div>
     <script>
       let cacheTemplosTodos = [];
+      // 4. VARIÁVEL GLOBAL PARA GUARDAR OS DADOS FILTRADOS
+      let dadosFiltradosParaExportar = [];
+      const baseUrl = 'http://localhost:5000';
   
       const schoolTranslations = {
-        'T': 'Theravada',
-        'M': 'Mahayana',
-        'Et': 'Étnico chinês/taiwanês',
-        'Ch': 'Chan',
-        'Fo': 'Fo Guang Shan',
-        'Co': 'Coreano',
-        'Sh': 'Shin',
-        'Sg': 'Shingon',
-        'Td': 'Tendai',
-        'Ni': 'Nichiren-shu',
-        'N2': 'Ramos do espectro Nichiren',
-        'SG': 'Soka Gakkai',
-        'Zn': 'Zen',
-        'Vi': 'Vietnamita',
-        'Vaj': 'Vajrayana',
-        'Bö': 'Bön (budismo tibetano)',
-        'Ny': 'Nyingma',
-        'Kg': 'Kagyu',
-        'Sk': 'Sakya',
-        'Gg': 'Gelug',
-        'NK': 'New Kadampa',
-        'E': 'Budismo tibetano ecumênico',
-        'Ns': 'Não-sectário',
-        'Na': 'Associações budistas nacionais'
+        'T': 'Theravada', 'M': 'Mahayana', 'Et': 'Étnico chinês/taiwanês', 'Ch': 'Chan',
+        'Fo': 'Fo Guang Shan', 'Co': 'Coreano', 'Sh': 'Shin', 'Sg': 'Shingon', 'Td': 'Tendai',
+        'Ni': 'Nichiren-shu', 'N2': 'Ramos do espectro Nichiren', 'SG': 'Soka Gakkai',
+        'Zn': 'Zen', 'Vi': 'Vietnamita', 'Vaj': 'Vajrayana', 'Bö': 'Bön (budismo tibetano)',
+        'Ny': 'Nyingma', 'Kg': 'Kagyu', 'Sk': 'Sakya', 'Gg': 'Gelug', 'NK': 'New Kadampa',
+        'E': 'Budismo tibetano ecumênico', 'Ns': 'Não-sectário', 'Na': 'Associações budistas nacionais'
       };
   
       function removeAccents(str) {
+        if (!str) return "";
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       }
   
       window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('loading').style.display = 'block';
         try {
-          const resposta = await fetch("http://localhost:5000/api/templos?all=true");
+          const resposta = await fetch(`${baseUrl}/api/templos?all=true`);
           if (!resposta.ok) throw new Error('Erro na resposta da API');
           const dados = await resposta.json();
           cacheTemplosTodos = dados.data || [];
-          exibirTemplos(cacheTemplosTodos);
+          
+          // Inicia com todos os dados
+          filtrarTemplos(); // <- MUDANÇA: Chama filtrar para já ter o estado inicial
           popularDatalists(cacheTemplosTodos);
+
         } catch (erro) {
           console.error(erro);
           alert('Erro ao carregar dados dos templos');
@@ -166,32 +194,63 @@
         }
       });
   
+
       function filtrarTemplos() {
-        const nomeInput = removeAccents(document.getElementById('nome').value).toLowerCase();
-        const paisInput = removeAccents(document.getElementById('pais').value).toLowerCase();
-        const escolaInput = removeAccents(document.getElementById('escola').value).toLowerCase();
-  
-        const filtrados = cacheTemplosTodos.filter(templo => {
-          const temNome = templo.NOME ? removeAccents(templo.NOME).toLowerCase().includes(nomeInput) : false;
-          const temPais = templo.PAIS ? removeAccents(templo.PAIS).toLowerCase().includes(paisInput) : false;
-          const temEscola = templo.ESCOLA ? removeAccents(templo.ESCOLA).toLowerCase().includes(escolaInput) : false;
-          return (!nomeInput || temNome) && (!paisInput || temPais) && (!escolaInput || temEscola);
-        });
-        exibirTemplos(filtrados);
+          const nomeInput = removeAccents(document.getElementById('nome').value).toLowerCase();
+          const paisInput = removeAccents(document.getElementById('pais').value).toLowerCase();
+          const escolaInput = removeAccents(document.getElementById('escola').value).toLowerCase();
+          const dataInicioInput = document.getElementById('dataInicio').value;
+          const dataFimInput = document.getElementById('dataFim').value;
+
+          const filtrados = cacheTemplosTodos.filter(templo => {
+              const temNome = templo.NOME ? removeAccents(templo.NOME).toLowerCase().includes(nomeInput) : false;
+              const temPais = templo.PAIS ? removeAccents(templo.PAIS).toLowerCase().includes(paisInput) : false;
+              
+              const escolaTraduzida = schoolTranslations[templo.ESCOLA] || templo.ESCOLA || '';
+              const temEscola = removeAccents(escolaTraduzida).toLowerCase().includes(escolaInput);
+
+              const dataAbertura = templo.DATA_ABERTURA_TEMPLO;
+              let dataOk = true; 
+              if (dataAbertura) {
+                  const aposDataInicio = !dataInicioInput || dataAbertura >= dataInicioInput;
+                  const antesDataFim = !dataFimInput || dataAbertura <= dataFimInput;
+                  dataOk = aposDataInicio && antesDataFim;
+              } else if (dataInicioInput || dataFimInput) {
+                  dataOk = false;
+              }
+
+              return (!nomeInput || temNome) && 
+                     (!paisInput || temPais) && 
+                     (!escolaInput || temEscola) &&
+                     dataOk;
+          });
+          
+          prepararBotaoExportar(filtrados);
+          exibirTemplos(filtrados);
       }
   
       function exibirTemplos(templos) {
         const tbody = document.getElementById('templos-body');
         tbody.innerHTML = '';
+        if (templos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhum templo encontrado.</td></tr>';
+            return;
+        }
+
         templos.forEach(templo => {
           const escola = schoolTranslations[templo.ESCOLA] || templo.ESCOLA || 'N/A';
+          const imagemHtml = templo.IMAGEM_PERFIL_URL
+            ? `<img src="${baseUrl}${templo.IMAGEM_PERFIL_URL}" alt="Perfil de ${templo.NOME}" class="profile-image-table">`
+            : `<div class="placeholder-image">T</div>`;
+
           tbody.innerHTML += `
             <tr>
+              <td>${imagemHtml}</td>
               <td>${templo.NOME || 'Sem nome'}</td>
               <td>${templo.PAIS || 'N/A'}</td>
               <td>${escola}</td>
-              <td>${templo.DATA_ABERTURA || 'N/A'}</td>
-              <td>${templo.PUBLICO_ALVO === 1 ? 'Étnico' : 'Conversão'}</td>
+              <td>${templo.DATA_ABERTURA_TEMPLO || 'N/A'}</td>
+              <td>${templo.PUBLICO_ALVO === '1' ? 'Étnico' : 'Conversão'}</td>
               <td>
                 <a class="detalhes-btn" href="detalhes.html?id=${templo.ID_TEMPLO}&type=templo">Ver mais</a>
               </td>
@@ -201,20 +260,60 @@
       }
   
       function popularDatalists(templos) {
-        const nomesSet = new Set();
-        const paisSet = new Set();
-        const escolasSet = new Set();
-  
+        const nomesSet = new Set(), paisSet = new Set(), escolasSet = new Set();
         templos.forEach(t => {
           if (t.NOME) nomesSet.add(t.NOME);
           if (t.PAIS) paisSet.add(t.PAIS);
           if (t.ESCOLA) escolasSet.add(schoolTranslations[t.ESCOLA] || t.ESCOLA);
         });
-  
         document.getElementById('nomes').innerHTML = [...nomesSet].sort().map(n => `<option value="${n}">`).join('');
         document.getElementById('paises').innerHTML = [...paisSet].sort().map(p => `<option value="${p}">`).join('');
         document.getElementById('escolas').innerHTML = [...escolasSet].sort().map(e => `<option value="${e}">`).join('');
       }
+
+      // 5. NOVAS FUNÇÕES PARA EXPORTAÇÃO
+      function prepararBotaoExportar(dadosFiltrados) {
+          dadosFiltradosParaExportar = dadosFiltrados;
+          const btn = document.getElementById('exportar-btn');
+          
+          if (dadosFiltrados.length > 0) {
+              btn.disabled = false;
+              // Remove o evento antigo e adiciona um novo para garantir que os dados corretos sejam usados
+              btn.onclick = exportarParaExcel; 
+          } else {
+              btn.disabled = true;
+          }
+      }
+
+      function exportarParaExcel() {
+          if (dadosFiltradosParaExportar.length === 0) {
+              alert("Não há dados para exportar.");
+              return;
+          }
+
+          // Mapeia os dados para o formato do Excel com todos os campos
+          const dadosParaPlanilha = dadosFiltradosParaExportar.map(templo => ({
+              "ID": templo.ID_TEMPLO,
+              "Nome": templo.NOME,
+              "País": templo.PAIS,
+              "Estado": templo.ESTADO,
+              "Município": templo.MUNICIPIO,
+              "CEP": templo.CODIGO_POSTAL,
+              "Escola/Tradição": schoolTranslations[templo.ESCOLA] || templo.ESCOLA,
+              "Veículo": templo.VEICULO,
+              "Público-Alvo": templo.PUBLICO_ALVO === '1' ? 'Étnico' : 'Conversão',
+              "Data de Abertura": templo.DATA_ABERTURA_TEMPLO,
+              "Data de Fechamento": templo.DATA_FECHAMENTO_TEMPLO,
+              "Informações Adicionais": templo.CAMPO_INFO_TEMPLO
+          }));
+
+          const worksheet = XLSX.utils.json_to_sheet(dadosParaPlanilha);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Templos");
+
+          const dataAtual = new Date().toISOString().slice(0, 10);
+          XLSX.writeFile(workbook, `export_templos_${dataAtual}.xlsx`);
+      }
     </script>
   </body>
-  </html>
+</html>

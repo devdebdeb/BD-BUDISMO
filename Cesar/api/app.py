@@ -1,7 +1,6 @@
 # =====================================================================
 # Beta da Versão com imagens e reorganizada pra integrar com a versão do André
 # =====================================================================
-
 # --- 1. Imports e Configuração Inicial ---
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -353,6 +352,18 @@ def get_templos():
     conn, cursor = get_db(), None
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # --- LÓGICA ADICIONADA ---
+        id_param = request.args.get('id')
+        if id_param:
+            cursor.execute("SELECT * FROM templo WHERE ID_TEMPLO = %s", (id_param,))
+            templo = cursor.fetchone()
+            if templo:
+                templo['DATA_ABERTURA_TEMPLO'] = format_date(templo.get('DATA_ABERTURA_TEMPLO'))
+                templo['DATA_FECHAMENTO_TEMPLO'] = format_date(templo.get('DATA_FECHAMENTO_TEMPLO'))
+            return jsonify({"data": [templo] if templo else []})
+        # --- FIM DA LÓGICA ADICIONADA ---
+
         if request.args.get('all') == 'true':
             cursor.execute("SELECT * FROM templo ORDER BY NOME")
         else:
@@ -610,24 +621,30 @@ def get_associacoes():
         if id_param:
             cursor.execute("SELECT * FROM associacao WHERE ID_ASSOCIACAO = %s", (id_param,))
             row = cursor.fetchone()
-            if not row:
-                return jsonify({"data": []})
-            row['DATA_ABERTURA_ASSOCIACAO'] = format_date(row.get('DATA_ABERTURA_ASSOCIACAO'))
-            row['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(row.get('DATA_FECHAMENTO_ASSOCIACAO'))
-            return jsonify({"data": [row]})
+            
+            # --- CORREÇÃO AQUI ---
+            # Adicionando a formatação de data que estava faltando para a busca de um único item
+            if row:
+                row['DATA_ABERTURA_ASSOCIACAO'] = format_date(row.get('DATA_ABERTURA_ASSOCIACAO'))
+                row['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(row.get('DATA_FECHAMENTO_ASSOCIACAO'))
+            # --- FIM DA CORREÇÃO ---
+
+            return jsonify({"data": [row] if row else []})
+        
+        # O resto da função para buscar todos os itens já estava correto
+        if request.args.get('all') == 'true':
+            cursor.execute("SELECT * FROM associacao ORDER BY NOME_ASSOCIACAO")
         else:
             page = int(request.args.get('page', 1))
             offset = (page - 1) * ITEMS_PER_PAGE
-            cursor.execute("SELECT * FROM associacao LIMIT %s OFFSET %s", (ITEMS_PER_PAGE, offset))
-            associacoes = cursor.fetchall()
-            for a in associacoes:
-                a['DATA_ABERTURA_ASSOCIACAO'] = format_date(a.get('DATA_ABERTURA_ASSOCIACAO'))
-                a['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(a.get('DATA_FECHAMENTO_ASSOCIACAO'))
-            return jsonify({
-                "data": associacoes,
-                "page": page,
-                "per_page": ITEMS_PER_PAGE
-            })
+            cursor.execute("SELECT * FROM associacao ORDER BY NOME_ASSOCIACAO LIMIT %s OFFSET %s", (ITEMS_PER_PAGE, offset))
+            
+        associacoes = cursor.fetchall()
+        for a in associacoes:
+            a['DATA_ABERTURA_ASSOCIACAO'] = format_date(a.get('DATA_ABERTURA_ASSOCIACAO'))
+            a['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(a.get('DATA_FECHAMENTO_ASSOCIACAO'))
+        return jsonify({"data": associacoes})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -736,27 +753,28 @@ def get_produtos():
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
-        # Boa prática: Adicionei um ORDER BY para que os produtos venham em ordem alfabética.
+
+        # --- LÓGICA ADICIONADA ---
+        id_param = request.args.get('id')
+        if id_param:
+            cursor.execute("SELECT * FROM produto WHERE ID_PRODUTO = %s", (id_param,))
+            produto = cursor.fetchone()
+            if produto:
+                produto['DATA_LANCAMENTO'] = format_date(produto.get('DATA_LANCAMENTO'))
+            return jsonify({"data": [produto] if produto else []})
+        # --- FIM DA LÓGICA ADICIONADA ---
+
         cursor.execute("SELECT * FROM produto ORDER BY NOME_PRODUTO")
         produtos = cursor.fetchall()
-
-        # --- INÍCIO DA CORREÇÃO ---
-        # É necessário formatar o objeto 'date' do Python para uma string (texto)
-        # antes de enviá-lo como JSON. O JSON não entende o tipo 'date' diretamente.
-        # Este loop percorre cada produto e converte a data de lançamento.
         for produto in produtos:
             if produto.get('DATA_LANCAMENTO'):
-                # .strftime('%Y-%m-%d') converte a data para o formato "Ano-Mês-Dia"
-                produto['DATA_LANCAMENTO'] = produto['DATA_LANCAMENTO'].strftime('%Y-%m-%d')
-        # --- FIM DA CORREÇÃO ---
-
+                produto['DATA_LANCAMENTO'] = format_date(produto.get('DATA_LANCAMENTO'))
         return jsonify({"data": produtos})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-
 
 #Criar Produto
 @app.route('/api/produtos', methods=['POST'])
@@ -768,10 +786,13 @@ def criar_produto():
     conn, cursor = get_db(), None
     try:
         cursor = conn.cursor()
-        query = "INSERT INTO produto (NOME_PRODUTO, TIPO_PRODUTO, DATA_LANCAMENTO, IMAGEM_PERFIL_URL) VALUES (%s, %s, %s, %s)"
+        query = "INSERT INTO produto (NOME_PRODUTO, TIPO_PRODUTO, CAMPO_INFO_PRODUTO, DATA_LANCAMENTO, IMAGEM_PERFIL_URL) VALUES (%s, %s, %s, %s, %s)"
         valores = (
-            data.get('NOME_PRODUTO'), data.get('TIPO_PRODUTO'), 
-            data.get('DATA_LANCAMENTO') or None, None
+            data.get('NOME_PRODUTO'), 
+            data.get('TIPO_PRODUTO'),
+            data.get('CAMPO_INFO_PRODUTO'), # <- NOVO CAMPO ADICIONADO
+            data.get('DATA_LANCAMENTO') or None, 
+            None
         )
         cursor.execute(query, valores)
         conn.commit()
