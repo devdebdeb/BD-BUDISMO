@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Produtos</title>
+  <title>Produtos Budistas</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -19,7 +19,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
       background: #fff;
       border-radius: 12px;
@@ -31,59 +31,60 @@
       color: var(--primary-color);
       margin-bottom: 20px;
     }
-    .filtro-container {
-      margin-bottom: 20px;
-    }
-    .filtros {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
+    .filtro-container { margin-bottom: 20px; }
+    .filtros { display: flex; flex-wrap: wrap; gap: 15px; }
     .filtros input {
       flex: 1;
+      min-width: 150px;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 8px;
       font-size: 1rem;
     }
-    .tabela-container {
-      overflow-x: auto;
-      margin-top: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    .tabela-container { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; }
     th, td {
       padding: 15px;
       text-align: left;
       border-bottom: 1px solid #eee;
+      vertical-align: middle;
     }
-    th {
-      background: var(--primary-color);
-      color: #fff;
-    }
-    tr:hover {
-      background: #f1f1f1;
-    }
+    th { background: var(--primary-color); color: #fff; }
+    tr:hover { background: #f1f1f1; }
     .detalhes-btn {
       background: var(--primary-color);
       color: #fff;
       padding: 8px 16px;
-      border: none;
       border-radius: 20px;
       text-decoration: none;
+      font-size: 0.9rem;
       transition: background 0.3s;
-      display: inline-block;
-      text-align: center;
+      white-space: nowrap;
     }
-    .detalhes-btn:hover {
-      background: var(--secondary-color);
+    .detalhes-btn:hover { background: var(--secondary-color); }
+    .loading { text-align: center; margin-top: 20px; color: var(--text-dark); }
+    .pagination { display: flex; justify-content: center; margin: 20px 0; gap: 10px; }
+    .pagination button { padding: 8px 12px; min-width: 40px; border-radius: 6px; border: 1px solid #ddd; background-color: #fff; cursor: pointer; }
+    .pagination button.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+    
+    .profile-image-table {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ddd;
     }
-    .loading {
-      text-align: center;
-      margin-top: 20px;
-      color: var(--text-dark);
+    .placeholder-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+        font-size: 1.5rem;
+        font-weight: bold;
     }
   </style>
 </head>
@@ -102,6 +103,7 @@
       <table id="tabela-produtos">
         <thead>
           <tr>
+            <th>Imagem</th>
             <th>Nome</th>
             <th>Tipo</th>
             <th>Lançamento</th>
@@ -111,11 +113,15 @@
         <tbody id="produtos-body"></tbody>
       </table>
       <div class="loading" id="loading">Carregando produtos...</div>
+      <div class="pagination" id="pagination"></div>
     </div>
   </div>
 
   <script>
     let cacheProdutosTodos = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const baseUrl = 'http://localhost:5000'; // Caminho relativo para a raiz do site
 
     function removeAccents(str) {
         if (!str) return "";
@@ -125,13 +131,13 @@
     window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('loading').style.display = 'block';
       try {
-        const resposta = await fetch("http://localhost:5000/api/produtos");
+        const resposta = await fetch(`${baseUrl}/api/produtos?all=true`);
         if (!resposta.ok) throw new Error('Erro na resposta da API');
         
         const dados = await resposta.json();
         cacheProdutosTodos = dados.data || [];
         
-        exibirProdutos(cacheProdutosTodos);
+        filtrarProdutos(); // Inicia a exibição com a primeira página
         popularDatalists(cacheProdutosTodos);
 
       } catch (error) {
@@ -142,33 +148,42 @@
       }
     });
 
-    function filtrarProdutos() {
+    function filtrarProdutos(page = 1) {
+      currentPage = page;
       const nomeInput = removeAccents(document.getElementById("nomeInput").value).toLowerCase();
       const tipoInput = removeAccents(document.getElementById("tipoInput").value).toLowerCase();
 
       const filtrados = cacheProdutosTodos.filter(p => {
-        // CONFIRMADO: Os nomes p.NOME_PRODUTO e p.TIPO_PRODUTO correspondem ao banco de dados.
         const nomeOk = !nomeInput || (p.NOME_PRODUTO && removeAccents(p.NOME_PRODUTO).toLowerCase().includes(nomeInput));
         const tipoOk = !tipoInput || (p.TIPO_PRODUTO && removeAccents(p.TIPO_PRODUTO).toLowerCase().includes(tipoInput));
         return nomeOk && tipoOk;
       });
 
-      exibirProdutos(filtrados);
+      exibirProdutos(filtrados, currentPage);
+      setupPaginacao(filtrados.length, currentPage);
     }
 
-    function exibirProdutos(produtos) {
+    function exibirProdutos(produtos, page = 1) {
       const tbody = document.getElementById("produtos-body");
       tbody.innerHTML = "";
 
       if (produtos.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Nenhum produto encontrado.</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Nenhum produto encontrado.</td></tr>";
         return;
       }
 
-      produtos.forEach(p => {
-        // CONFIRMADO: Os nomes das colunas aqui estão 100% corretos de acordo com seu script SQL.
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const pagina = produtos.slice(start, end);
+
+      pagina.forEach(p => {
+        const imagemHtml = p.IMAGEM_PERFIL_URL
+            ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="Perfil de ${p.NOME_PRODUTO}" class="profile-image-table">`
+            : `<div class="placeholder-image">P</div>`; // 'P' de Produto
+
         tbody.innerHTML += `
           <tr>
+            <td>${imagemHtml}</td>
             <td>${p.NOME_PRODUTO || "N/A"}</td>
             <td>${p.TIPO_PRODUTO || "N/A"}</td>
             <td>${p.DATA_LANCAMENTO ? new Date(p.DATA_LANCAMENTO).toLocaleDateString() : "N/A"}</td>
@@ -183,15 +198,21 @@
     function popularDatalists(produtos) {
         const nomesSet = new Set();
         const tiposSet = new Set();
-
         produtos.forEach(p => {
-            // CONFIRMADO: p.NOME_PRODUTO e p.TIPO_PRODUTO estão corretos.
             if (p.NOME_PRODUTO) nomesSet.add(p.NOME_PRODUTO);
             if (p.TIPO_PRODUTO) tiposSet.add(p.TIPO_PRODUTO);
         });
-
         document.getElementById('nomes').innerHTML = [...nomesSet].sort().map(n => `<option value="${n}"></option>`).join('');
         document.getElementById('tipos').innerHTML = [...tiposSet].sort().map(t => `<option value="${t}"></option>`).join('');
+    }
+
+    function setupPaginacao(totalItems, page) {
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
+      const pagDiv = document.getElementById('pagination');
+      pagDiv.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        pagDiv.innerHTML += `<button onclick="filtrarProdutos(${i})" ${i === page ? 'class="active"' : ''}>${i}</button>`;
+      }
     }
   </script>
 </body>

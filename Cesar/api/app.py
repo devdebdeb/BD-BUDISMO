@@ -609,8 +609,12 @@ def deletar_personalidade(id_personalidade):
 
 # 4.3 ROTAS PARA ASSOCIAÇÕES -------------------------------------------------------------------------------------
 #Buscar Associação
+# Em app.py, substitua a função get_associacoes existente por esta
+
 @app.route('/api/associacoes', methods=['GET'])
 def get_associacoes():
+    # Adicionamos "print" para ver o que a API recebe e faz
+    print("\n--- INICIANDO ROTA /api/associacoes ---")
     conn = None
     cursor = None
     try:
@@ -618,20 +622,24 @@ def get_associacoes():
         cursor = conn.cursor(dictionary=True)
 
         id_param = request.args.get('id')
+        print(f"1. Parâmetro 'id' recebido na URL: {id_param}") # DEBUG: Mostra o ID recebido
+
         if id_param:
+            print(f"2. Buscando no banco de dados por ID_ASSOCIACAO = {id_param}") # DEBUG: Confirma a busca
             cursor.execute("SELECT * FROM associacao WHERE ID_ASSOCIACAO = %s", (id_param,))
             row = cursor.fetchone()
             
-            # --- CORREÇÃO AQUI ---
-            # Adicionando a formatação de data que estava faltando para a busca de um único item
+            print(f"3. Resultado da busca no banco: {'Encontrou algo' if row else 'NÃO ENCONTROU NADA'}") # DEBUG: Mostra o resultado
+            
             if row:
                 row['DATA_ABERTURA_ASSOCIACAO'] = format_date(row.get('DATA_ABERTURA_ASSOCIACAO'))
                 row['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(row.get('DATA_FECHAMENTO_ASSOCIACAO'))
-            # --- FIM DA CORREÇÃO ---
-
+            
+            print("--- FIM DA ROTA ---")
             return jsonify({"data": [row] if row else []})
         
-        # O resto da função para buscar todos os itens já estava correto
+        # O código abaixo só executa se não houver um 'id' na URL
+        print("2. Nenhum ID específico recebido, buscando todas as associações.")
         if request.args.get('all') == 'true':
             cursor.execute("SELECT * FROM associacao ORDER BY NOME_ASSOCIACAO")
         else:
@@ -640,12 +648,16 @@ def get_associacoes():
             cursor.execute("SELECT * FROM associacao ORDER BY NOME_ASSOCIACAO LIMIT %s OFFSET %s", (ITEMS_PER_PAGE, offset))
             
         associacoes = cursor.fetchall()
+        print(f"3. Total de associações encontradas: {len(associacoes)}") # DEBUG
         for a in associacoes:
             a['DATA_ABERTURA_ASSOCIACAO'] = format_date(a.get('DATA_ABERTURA_ASSOCIACAO'))
             a['DATA_FECHAMENTO_ASSOCIACAO'] = format_date(a.get('DATA_FECHAMENTO_ASSOCIACAO'))
+        
+        print("--- FIM DA ROTA ---")
         return jsonify({"data": associacoes})
 
     except Exception as e:
+        print(f"!!! OCORREU UM ERRO: {e}") # DEBUG: Mostra erros
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -857,6 +869,127 @@ def deletar_produto(id_produto):
         cursor.close()
         conn.close()
 
+# 4.5 ROTAS PARA VISITAS -------------------------------------------------------------------------------------
+
+@app.route('/api/visitas', methods=['GET'])
+def get_visitas():
+    """
+    Busca todas as visitas (com opção 'all=true') ou uma visita específica por ID.
+    Formata as datas antes de retornar.
+    """
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        id_param = request.args.get('id')
+        
+        if id_param:
+            cursor.execute("SELECT * FROM visita WHERE ID_VISITA = %s", (id_param,))
+            visita = cursor.fetchone()
+            if visita:
+                visita['DATA_VISITA'] = format_date(visita.get('DATA_VISITA'))
+            return jsonify({"data": [visita] if visita else []})
+
+        # Retorna todas as visitas se 'all=true' for passado
+        if request.args.get('all') == 'true':
+            cursor.execute("SELECT * FROM visita ORDER BY DATA_VISITA DESC")
+            visitas = cursor.fetchall()
+            for visita in visitas:
+                visita['DATA_VISITA'] = format_date(visita.get('DATA_VISITA'))
+            return jsonify({"data": visitas})
+        
+        # Lógica de paginação (pode ser implementada se necessário no futuro)
+        # Por agora, retornaremos todas as visitas para simplificar o frontend
+        cursor.execute("SELECT * FROM visita ORDER BY DATA_VISITA DESC")
+        visitas = cursor.fetchall()
+        for visita in visitas:
+            visita['DATA_VISITA'] = format_date(visita.get('DATA_VISITA'))
+        return jsonify({"data": visitas})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/visitas', methods=['POST'])
+def criar_visita():
+    """
+    Cria uma nova visita no banco de dados.
+    O campo DATA_VISITA é obrigatório.
+    """
+    data = request.json
+    if not data.get('DATA_VISITA'):
+        return jsonify({"error": "O campo 'Data da Visita' é obrigatório."}), 400
+    
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        query = "INSERT INTO visita (DATA_VISITA, CAMPO_INFO_VISITA) VALUES (%s, %s)"
+        valores = (data.get('DATA_VISITA'), data.get('CAMPO_INFO_VISITA'))
+        cursor.execute(query, valores)
+        conn.commit()
+        return jsonify({"message": "Visita criada com sucesso.", "id": cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/visitas/<int:id_visita>', methods=['PUT'])
+def atualizar_visita(id_visita):
+    """
+    Atualiza os dados de uma visita existente.
+    """
+    data = request.json
+    campos_validos = ['DATA_VISITA', 'CAMPO_INFO_VISITA']
+    campos, valores = [], []
+    for campo in campos_validos:
+        if campo in data:
+            valor = data[campo]
+            if "DATA" in campo and not valor: valor = None
+            campos.append(f"`{campo}` = %s")
+            valores.append(valor)
+
+    if not campos: return jsonify({"error": "Nada para atualizar."}), 400
+    valores.append(id_visita)
+    
+    conn, cursor = get_db(), None
+    try:
+        cursor = conn.cursor()
+        query = f"UPDATE visita SET {', '.join(campos)} WHERE ID_VISITA = %s"
+        cursor.execute(query, valores)
+        conn.commit()
+        return jsonify({"message": "Visita atualizada com sucesso."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/visitas/<int:id_visita>', methods=['DELETE'])
+def deletar_visita(id_visita):
+    """
+    Apaga uma visita e todas as suas relações nas tabelas pivot.
+    Isto é crucial para evitar erros de chave estrangeira.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        # Apagar relações primeiro para evitar erros de constraint
+        cursor.execute("DELETE FROM templo_visita WHERE ID_TV_VISITA_FK = %s", (id_visita,))
+        cursor.execute("DELETE FROM personalidade_visita WHERE ID_PV_VISITA_FK = %s", (id_visita,))
+        cursor.execute("DELETE FROM associacao_visita WHERE ID_AV_VISITA_FK = %s", (id_visita,))
+        
+        # Apagar a visita principal
+        cursor.execute("DELETE FROM visita WHERE ID_VISITA = %s", (id_visita,))
+        conn.commit()
+        return jsonify({"message": "Visita e suas relações foram apagadas com sucesso."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 # --- 5. Rotas de Relações ---
@@ -872,14 +1005,19 @@ def get_relations(entity_type, entity_id):
         relations = {}
         
         if entity_type == 'templo':
+            # Relações existentes
             cursor.execute("SELECT p.*, pt.FUNCAO FROM personalidade p JOIN personalidade_templo pt ON p.ID_PERSONALIDADE = pt.ID_PT_PERSONALIDADE_FK WHERE pt.ID_PT_TEMPLO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
             cursor.execute("SELECT a.* FROM associacao a JOIN templo_associacao ta ON a.ID_ASSOCIACAO = ta.ID_TA_ASSOCIACAO_FK WHERE ta.ID_TA_TEMPLO_FK = %s", [entity_id])
             relations['associacoes'] = cursor.fetchall()
             cursor.execute("SELECT * FROM imagem_templo WHERE ID_TEMPLO_FK = %s", [entity_id])
             relations['imagens_carrossel'] = cursor.fetchall()
+            # NOVA RELAÇÃO: Buscar visitas associadas ao templo
+            cursor.execute("SELECT v.* FROM visita v JOIN templo_visita tv ON v.ID_VISITA = tv.ID_TV_VISITA_FK WHERE tv.ID_TV_TEMPLO_FK = %s", [entity_id])
+            relations['visitas'] = cursor.fetchall()
 
         elif entity_type == 'personalidade':
+            # Relações existentes
             cursor.execute("SELECT t.*, pt.FUNCAO FROM templo t JOIN personalidade_templo pt ON t.ID_TEMPLO = pt.ID_PT_TEMPLO_FK WHERE pt.ID_PT_PERSONALIDADE_FK = %s", [entity_id])
             relations['templos'] = cursor.fetchall()
             cursor.execute("SELECT a.* FROM associacao a JOIN personalidade_associacao pa ON a.ID_ASSOCIACAO = pa.ID_PA_ASSOCIACAO_FK WHERE pa.ID_PA_PERSONALIDADE_FK = %s", [entity_id])
@@ -888,25 +1026,35 @@ def get_relations(entity_type, entity_id):
             relations['produtos'] = cursor.fetchall()
             cursor.execute("SELECT * FROM imagem_personalidade WHERE ID_PERSONALIDADE_FK = %s", [entity_id])
             relations['imagens_carrossel'] = cursor.fetchall()
+            # NOVA RELAÇÃO: Buscar visitas associadas à personalidade
+            cursor.execute("SELECT v.* FROM visita v JOIN personalidade_visita pv ON v.ID_VISITA = pv.ID_PV_VISITA_FK WHERE pv.ID_PV_PERSONALIDADE_FK = %s", [entity_id])
+            relations['visitas'] = cursor.fetchall()
 
         elif entity_type == 'associacao':
+            # Relações existentes
             cursor.execute("SELECT t.* FROM templo t JOIN templo_associacao ta ON t.ID_TEMPLO = ta.ID_TA_TEMPLO_FK WHERE ta.ID_TA_ASSOCIACAO_FK = %s", [entity_id])
             relations['templos'] = cursor.fetchall()
             cursor.execute("SELECT p.* FROM personalidade p JOIN personalidade_associacao pa ON p.ID_PERSONALIDADE = pa.ID_PA_PERSONALIDADE_FK WHERE pa.ID_PA_ASSOCIACAO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
             cursor.execute("SELECT * FROM imagem_associacao WHERE ID_ASSOCIACAO_FK = %s", [entity_id])
             relations['imagens_carrossel'] = cursor.fetchall()
+            # NOVA RELAÇÃO: Buscar visitas associadas à associação
+            cursor.execute("SELECT v.* FROM visita v JOIN associacao_visita av ON v.ID_VISITA = av.ID_AV_VISITA_FK WHERE av.ID_AV_ASSOCIACAO_FK = %s", [entity_id])
+            relations['visitas'] = cursor.fetchall()
 
         elif entity_type == 'produto':
+            # Relações existentes (produtos não parecem ter visitas associadas no teu esquema)
             cursor.execute("SELECT p.* FROM PERSONALIDADE p JOIN PERSONALIDADE_PRODUTO pp ON p.ID_PERSONALIDADE = pp.ID_PP_PERSONALIDADE_FK WHERE pp.ID_PP_PRODUTO_FK = %s", [entity_id])
             relations['personalidades'] = cursor.fetchall()
             cursor.execute("SELECT * FROM imagem_produto WHERE ID_PRODUTO_FK = %s", [entity_id])
             relations['imagens_carrossel'] = cursor.fetchall()
         
+        # Formata todas as datas em todas as relações encontradas
         for key, items in relations.items():
             for item in items:
                 for date_field in item:
-                    if 'DATA' in date_field:
+                    # Incluímos 'DATA_VISITA' na checagem
+                    if 'DATA' in date_field or date_field == 'DATA_VISITA':
                         item[date_field] = format_date(item[date_field])
                         
         return jsonify(relations)
@@ -916,7 +1064,6 @@ def get_relations(entity_type, entity_id):
         if cursor: cursor.close()
         if conn: conn.close()
 
-
 # 5.2 Conexões do templo
 @app.route('/api/relations/templo/<int:templo_id>', methods=['POST'])
 def adicionar_conexao_templo(templo_id):
@@ -924,7 +1071,8 @@ def adicionar_conexao_templo(templo_id):
     tipo = data.get('tipo')
     id_rel = data.get('id_rel')
 
-    if tipo not in ['personalidade', 'associacao'] or not id_rel:
+    # Adicionamos 'visita' à lista de tipos válidos
+    if tipo not in ['personalidade', 'associacao', 'visita'] or not id_rel:
         return jsonify({"error": "Tipo ou id_rel inválidos."}), 400
 
     conn = get_db()
@@ -933,19 +1081,21 @@ def adicionar_conexao_templo(templo_id):
     try:
         if tipo == 'personalidade':
             funcao_recebida = data.get('funcao')
-            
-            if funcao_recebida and funcao_recebida.strip():
-                valor_final_funcao = funcao_recebida
-            else:
-                valor_final_funcao = 'Não especificado'
-            
+            valor_final_funcao = funcao_recebida if funcao_recebida and funcao_recebida.strip() else 'Não especificado'
             cursor.execute(
                 "INSERT INTO personalidade_templo (ID_PT_PERSONALIDADE_FK, ID_PT_TEMPLO_FK, FUNCAO) VALUES (%s, %s, %s)", 
                 (id_rel, templo_id, valor_final_funcao)
             )
-        else:
+        # Lógica para associacao continua a mesma
+        elif tipo == 'associacao':
             cursor.execute(
                 "INSERT INTO templo_associacao (ID_TA_ASSOCIACAO_FK, ID_TA_TEMPLO_FK) VALUES (%s, %s)",
+                (id_rel, templo_id)
+            )
+        # NOVA LÓGICA: Adicionar uma visita a um templo
+        elif tipo == 'visita':
+            cursor.execute(
+                "INSERT INTO templo_visita (ID_TV_VISITA_FK, ID_TV_TEMPLO_FK) VALUES (%s, %s)",
                 (id_rel, templo_id)
             )
 
@@ -953,6 +1103,7 @@ def adicionar_conexao_templo(templo_id):
         return jsonify({"message": f"{tipo.capitalize()} adicionada com sucesso ao templo."})
 
     except Exception as e:
+        if 'Duplicate entry' in str(e): return jsonify({"error": f"Esta relação já existe."}), 409
         return jsonify({"error": str(e)}), 500
     finally:
         cursor.close()
@@ -963,7 +1114,8 @@ def remover_conexao_templo(templo_id):
     tipo = request.args.get('tipo')
     id_rel = request.args.get('id_rel')
 
-    if tipo not in ['personalidade', 'associacao'] or not id_rel:
+    # Adicionamos 'visita' à lista de tipos válidos
+    if tipo not in ['personalidade', 'associacao', 'visita'] or not id_rel:
         return jsonify({"error": "Tipo ou id_rel inválidos."}), 400
 
     conn = get_db()
@@ -972,8 +1124,11 @@ def remover_conexao_templo(templo_id):
     try:
         if tipo == 'personalidade':
             cursor.execute("DELETE FROM personalidade_templo WHERE ID_PT_PERSONALIDADE_FK = %s AND ID_PT_TEMPLO_FK = %s", (id_rel, templo_id))
-        else:
+        elif tipo == 'associacao':
             cursor.execute("DELETE FROM templo_associacao WHERE ID_TA_ASSOCIACAO_FK = %s AND ID_TA_TEMPLO_FK = %s", (id_rel, templo_id))
+        # NOVA LÓGICA: Remover uma visita de um templo
+        elif tipo == 'visita':
+            cursor.execute("DELETE FROM templo_visita WHERE ID_TV_VISITA_FK = %s AND ID_TV_TEMPLO_FK = %s", (id_rel, templo_id))
 
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} removida com sucesso do templo."})
@@ -990,7 +1145,8 @@ def remover_conexao_templo(templo_id):
 def adicionar_conexao_personalidade(personalidade_id):
     data = request.json
     tipo, id_rel = data.get('tipo'), data.get('id_rel')
-    if tipo not in ['templo', 'associacao', 'produto'] or not id_rel: return jsonify({"error": "Parâmetros inválidos."}), 400
+    # Adicionamos 'visita' à lista de tipos válidos
+    if tipo not in ['templo', 'associacao', 'produto', 'visita'] or not id_rel: return jsonify({"error": "Parâmetros inválidos."}), 400
     conn, cursor = get_db(), None
     try:
         cursor = conn.cursor()
@@ -1000,8 +1156,15 @@ def adicionar_conexao_personalidade(personalidade_id):
         elif tipo == 'associacao':
             cursor.execute("INSERT INTO PERSONALIDADE_ASSOCIACAO (ID_PA_PERSONALIDADE_FK, ID_PA_ASSOCIACAO_FK) VALUES (%s, %s)", (personalidade_id, id_rel))
         elif tipo == 'produto':
-            # CORREÇÃO: Usando a convenção _FK para a tabela de produtos
             cursor.execute("INSERT INTO PERSONALIDADE_PRODUTO (ID_PP_PERSONALIDADE_FK, ID_PP_PRODUTO_FK) VALUES (%s, %s)", (personalidade_id, id_rel))
+        
+        # --- NOVO BLOCO DE CÓDIGO ---
+        # Este novo bloco insere um registo na tabela `personalidade_visita`,
+        # usando as colunas `ID_PV_PERSONALIDADE_FK` e `ID_PV_VISITA_FK` para criar a ligação.
+        elif tipo == 'visita':
+            cursor.execute("INSERT INTO personalidade_visita (ID_PV_PERSONALIDADE_FK, ID_PV_VISITA_FK) VALUES (%s, %s)", (personalidade_id, id_rel))
+        # --- FIM DO NOVO BLOCO ---
+
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} adicionado(a) com sucesso."})
     except Exception as e:
@@ -1014,7 +1177,8 @@ def adicionar_conexao_personalidade(personalidade_id):
 @app.route('/api/relations/personalidade/<int:personalidade_id>', methods=['DELETE'])
 def remover_conexao_personalidade(personalidade_id):
     tipo, id_rel = request.args.get('tipo'), request.args.get('id_rel')
-    if tipo not in ['templo', 'associacao', 'produto'] or not id_rel: return jsonify({"error": "Parâmetros inválidos."}), 400
+    # MUDANÇA 1: Adicionamos 'visita' à lista de tipos permitidos
+    if tipo not in ['templo', 'associacao', 'produto', 'visita'] or not id_rel: return jsonify({"error": "Parâmetros inválidos."}), 400
     conn, cursor = get_db(), None
     try:
         cursor = conn.cursor()
@@ -1023,8 +1187,13 @@ def remover_conexao_personalidade(personalidade_id):
         elif tipo == 'associacao':
             cursor.execute("DELETE FROM PERSONALIDADE_ASSOCIACAO WHERE ID_PA_PERSONALIDADE_FK = %s AND ID_PA_ASSOCIACAO_FK = %s", (personalidade_id, id_rel))
         elif tipo == 'produto':
-            # CORREÇÃO: Usando a convenção _FK para a tabela de produtos
             cursor.execute("DELETE FROM PERSONALIDADE_PRODUTO WHERE ID_PP_PERSONALIDADE_FK = %s AND ID_PP_PRODUTO_FK = %s", (personalidade_id, id_rel))
+
+        # MUDANÇA 2: Adicionamos o bloco para apagar a relação com 'visita'
+        elif tipo == 'visita':
+            # Apaga a ligação na tabela 'personalidade_visita'
+            cursor.execute("DELETE FROM personalidade_visita WHERE ID_PV_PERSONALIDADE_FK = %s AND ID_PV_VISITA_FK = %s", (personalidade_id, id_rel))
+
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} removido(a) com sucesso."})
     except Exception as e:
@@ -1042,7 +1211,8 @@ def adicionar_conexao_associacao(associacao_id):
     tipo = data.get('tipo')
     id_rel = data.get('id_rel')
 
-    if tipo not in ['templo', 'personalidade'] or not id_rel:
+    # Adicionamos 'visita' à lista de tipos válidos
+    if tipo not in ['templo', 'personalidade', 'visita'] or not id_rel:
         return jsonify({"error": "Parâmetros 'tipo' ou 'id_rel' inválidos."}), 400
 
     conn = get_db()
@@ -1054,12 +1224,21 @@ def adicionar_conexao_associacao(associacao_id):
                 (associacao_id, id_rel)
             )
         elif tipo == 'personalidade':
-            # --- CORREÇÃO AQUI ---
-            # Query INSERT sem o campo FUNCAO
             cursor.execute(
                 "INSERT INTO personalidade_associacao (ID_PA_ASSOCIACAO_FK, ID_PA_PERSONALIDADE_FK) VALUES (%s, %s)",
                 (associacao_id, id_rel)
             )
+        
+        # --- NOVO BLOCO DE CÓDIGO ---
+        # Adiciona a relação na tabela `associacao_visita`, usando as colunas
+        # `ID_AV_ASSOCIACAO_FK` e `ID_AV_VISITA_FK`.
+        elif tipo == 'visita':
+            cursor.execute(
+                "INSERT INTO associacao_visita (ID_AV_ASSOCIACAO_FK, ID_AV_VISITA_FK) VALUES (%s, %s)",
+                (associacao_id, id_rel)
+            )
+        # --- FIM DO NOVO BLOCO ---
+
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} adicionado(a) com sucesso à associação."})
     except Exception as e:
@@ -1075,7 +1254,8 @@ def remover_conexao_associacao(associacao_id):
     tipo = request.args.get('tipo')
     id_rel = request.args.get('id_rel')
     
-    if tipo not in ['templo', 'personalidade'] or not id_rel:
+    # Adicionamos 'visita' à lista de tipos válidos
+    if tipo not in ['templo', 'personalidade', 'visita'] or not id_rel:
         return jsonify({"error": "Parâmetros 'tipo' ou 'id_rel' inválidos."}), 400
 
     conn = get_db()
@@ -1086,6 +1266,12 @@ def remover_conexao_associacao(associacao_id):
         elif tipo == 'personalidade':
             cursor.execute("DELETE FROM personalidade_associacao WHERE ID_PA_ASSOCIACAO_FK = %s AND ID_PA_PERSONALIDADE_FK = %s", (associacao_id, id_rel))
         
+        # --- NOVO BLOCO DE CÓDIGO ---
+        # Apaga a relação da tabela `associacao_visita`.
+        elif tipo == 'visita':
+            cursor.execute("DELETE FROM associacao_visita WHERE ID_AV_ASSOCIACAO_FK = %s AND ID_AV_VISITA_FK = %s", (associacao_id, id_rel))
+        # --- FIM DO NOVO BLOCO ---
+
         conn.commit()
         return jsonify({"message": f"{tipo.capitalize()} removido(a) com sucesso da associação."})
     except Exception as e:
@@ -1093,6 +1279,7 @@ def remover_conexao_associacao(associacao_id):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
 
 # 5.5 Conexões dos Produtos
 

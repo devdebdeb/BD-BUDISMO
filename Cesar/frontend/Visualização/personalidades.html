@@ -19,7 +19,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
       background: #fff;
       border-radius: 12px;
@@ -41,6 +41,7 @@
     }
     .filtros input, .filtros select {
       flex: 1;
+      min-width: 150px;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -58,6 +59,7 @@
       padding: 15px;
       text-align: left;
       border-bottom: 1px solid #eee;
+      vertical-align: middle;
     }
     th {
       background: var(--primary-color);
@@ -74,6 +76,7 @@
       border-radius: 20px;
       text-decoration: none;
       transition: background 0.3s;
+      white-space: nowrap;
     }
     .detalhes-btn:hover {
       background: var(--secondary-color);
@@ -92,14 +95,38 @@
     .pagination button {
       padding: 8px 12px;
       min-width: 40px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background-color: #fff;
+      cursor: pointer;
     }
     .pagination button.active {
       background: var(--primary-color);
       color: #fff;
-      border: none;
+      border-color: var(--primary-color);
+    }
+
+    /* --- NOVOS ESTILOS PARA A IMAGEM NA TABELA --- */
+    .profile-image-table {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ddd;
+    }
+    .placeholder-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+        font-size: 1.5rem;
+        font-weight: bold;
     }
   </style>
-</head>
 </head>
 <body>
   <div class="container">
@@ -122,6 +149,7 @@
       <table id="tabela-personalidades">
         <thead>
           <tr>
+            <th>Imagem</th>
             <th>Nome</th>
             <th>País de Origem</th>
             <th>Nível</th>
@@ -139,23 +167,21 @@
     let cachePersonalidades = [];
     let currentPage = 1;
     const itemsPerPage = 10;
-
-    const columnTranslations = {
-      'NOME_PERSONALIDADE': 'Nome',
-      'PAIS_ORIGEM_PERSONALIDADE': 'País de Origem',
-      'NIVEL': 'Nível',
-      'GENERO': 'Gênero'
-    };
+    
+    // --- CORREÇÃO DA URL BASE ---
+    const baseUrl = 'http://localhost:5000'; // Caminho relativo para a raiz do site
 
     function removeAccents(str) {
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (!str) return "";
+      return str.normalize("NFD").replace(/[\u00c0-\u024f]/g, "");
     }
 
     window.onload = async () => {
       document.getElementById('loading').style.display = 'block';
       try {
         if (cachePersonalidades.length === 0) {
-          const resp = await fetch("http://localhost:5000/api/personalidades");
+          // Usa a nova baseUrl e busca todas as personalidades
+          const resp = await fetch(`${baseUrl}/api/personalidades?all=true`);
           if (!resp.ok) throw new Error('Erro na resposta da API');
           const dados = await resp.json();
           cachePersonalidades = dados.data || [];
@@ -173,12 +199,8 @@
       const nomesSet = new Set();
       const paisesSet = new Set();
       personalidades.forEach(p => {
-        if (p.NOME_PERSONALIDADE) {
-          nomesSet.add(p.NOME_PERSONALIDADE);
-        }
-        if (p.PAIS_ORIGEM_PERSONALIDADE) {
-          paisesSet.add(p.PAIS_ORIGEM_PERSONALIDADE);
-        }
+        if (p.NOME_PERSONALIDADE) nomesSet.add(p.NOME_PERSONALIDADE);
+        if (p.PAIS_ORIGEM_PERSONALIDADE) paisesSet.add(p.PAIS_ORIGEM_PERSONALIDADE);
       });
       document.getElementById('nomes').innerHTML = [...nomesSet].sort().map(n => `<option value="${n}">`).join('');
       document.getElementById('paises').innerHTML = [...paisesSet].sort().map(p => `<option value="${p}">`).join('');
@@ -196,7 +218,7 @@
         const matchNome = nome.includes(nomeInput);
         const matchPais = pais.includes(paisInput);
         const matchGenero = !genero || p.GENERO === genero;
-        return (!nomeInput || matchNome) && (!paisInput || matchPais) && matchGenero;
+        return matchNome && matchPais && matchGenero;
       });
       exibirPersonalidades(filtrados, currentPage);
       setupPaginacao(filtrados.length, currentPage);
@@ -205,12 +227,23 @@
     function exibirPersonalidades(personalidades, page = 1) {
       const tbody = document.getElementById('personalidades-body');
       tbody.innerHTML = '';
+      if (personalidades.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma personalidade encontrada.</td></tr>';
+          return;
+      }
       const start = (page - 1) * itemsPerPage;
       const end = start + itemsPerPage;
       const pagina = personalidades.slice(start, end);
+      
       pagina.forEach(p => {
+        // Lógica para criar a tag da imagem ou um placeholder
+        const imagemHtml = p.IMAGEM_PERFIL_URL
+            ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="Perfil de ${p.NOME_PERSONALIDADE}" class="profile-image-table">`
+            : `<div class="placeholder-image">P</div>`; // 'P' de Personalidade
+
         tbody.innerHTML += `
           <tr>
+            <td>${imagemHtml}</td>
             <td>${p.NOME_PERSONALIDADE || 'Sem nome'}</td>
             <td>${p.PAIS_ORIGEM_PERSONALIDADE || 'N/A'}</td>
             <td>${p.NIVEL || 'N/A'}</td>

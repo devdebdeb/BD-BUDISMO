@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciar Visitas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos copiados de editar_personalidade.html para consistência */
+    body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 30px; }
+    .container { max-width: 800px; margin: 20px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    h2 { text-align: center; color: #499a6e; margin-top: 0; margin-bottom: 30px; font-size: 2rem; }
+    h3 { color: #3a7a5a; border-top: 1px solid #eee; padding-top: 25px; margin-top: 30px; text-align: center; font-size: 1.5rem; }
+    h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    input, textarea, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: 500; font-size: 1.1rem; transition: background-color 0.3s ease; margin-top: 10px; }
+    button:hover { background: #3a7a5a; }
+    label { font-weight: 500; color: #333; font-size: 0.9rem; display: block; text-align: left; }
+    .form-field { margin-bottom: 10px; text-align: left; }
+    .related-card { margin-top: 20px; background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;}
+    .inline-group { display: flex; gap: 10px; align-items: flex-end; }
+    .inline-group > * { flex: 1; }
+    .success, .error { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    .related-item { display: flex; align-items: center; gap: 15px; }
+    .related-content { flex-grow: 1; }
+    .related-content p { margin: 5px 0; font-size: 0.9rem; color: #666; }
+    @media (max-width: 600px) { .container { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Visitas</h2>
+    <div class="form-field">
+      <label for="entidadeSelect">Selecione uma visita para editar ou apagar</label>
+      <select id="entidadeSelect" onchange="carregarEntidade()"></select>
+    </div>
+    
+    <div id="conteudo-edicao" style="display:none;">
+      <h3>Dados Principais da Visita</h3>
+      <div class="form-field"><label for="edit_data_visita">Data da Visita</label><input type="date" id="edit_data_visita"/></div>
+      <div class="form-field"><label for="edit_campo_info_visita">Informações</label><textarea id="edit_campo_info_visita"></textarea></div>
+      <button onclick="atualizarEntidade()">Atualizar Dados da Visita</button>
+      
+      <h3>Relações</h3>
+      <div class="related-card">
+        <h4>Templos Visitados</h4>
+        <div id="templos" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_templo"></select>
+            <button onclick="adicionarConexao('templo')">Adicionar Templo</button>
+        </div>
+      </div>
+      <div class="related-card">
+        <h4>Personalidades Envolvidas</h4>
+        <div id="personalidades" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_personalidade"></select>
+            <button onclick="adicionarConexao('personalidade')">Adicionar Personalidade</button>
+        </div>
+      </div>
+       <div class="related-card">
+        <h4>Associações Envolvidas</h4>
+        <div id="associacoes" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_associacao"></select>
+            <button onclick="adicionarConexao('associacao')">Adicionar Associação</button>
+        </div>
+      </div>
+
+      <button onclick="deletarEntidade()" style="background-color:#d9534f; margin-top: 30px;">Apagar Visita Permanentemente</button>
+    </div>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+        alert("Acesso negado. Redirecionando para login.");
+        window.location.href = "../Administração/login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    const entidade_tipo = 'visita';
+    let entidades = [], templos = [], personalidades = [], associacoes = [];
+    let entidade_id = null;
+
+    async function carregarTudo() {
+      try {
+        const [resEnt, resT, resP, resA] = await Promise.all([
+          fetch(`${baseUrl}/api/visitas?all=true`),
+          fetch(`${baseUrl}/api/templos?all=true`),
+          fetch(`${baseUrl}/api/personalidades?all=true`),
+          fetch(`${baseUrl}/api/associacoes?all=true`)
+        ]);
+        entidades = (await resEnt.json()).data || [];
+        templos = (await resT.json()).data || [];
+        personalidades = (await resP.json()).data || [];
+        associacoes = (await resA.json()).data || [];
+
+        const selEnt = document.getElementById("entidadeSelect");
+        selEnt.innerHTML = '<option value="">Selecione uma visita</option>';
+        entidades.forEach(e => {
+            const dataFormatada = new Date(e.DATA_VISITA).toLocaleDateString('pt-BR');
+            selEnt.innerHTML += `<option value="${e.ID_VISITA}">Visita em ${dataFormatada} (ID: ${e.ID_VISITA})</option>`;
+        });
+        
+        const selT = document.getElementById("busca_templo");
+        selT.innerHTML = '<option value="">Selecione um templo</option>';
+        templos.forEach(t => { selT.innerHTML += `<option value="${t.ID_TEMPLO}">${t.NOME}</option>`; });
+        
+        const selP = document.getElementById("busca_personalidade");
+        selP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => { selP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`; });
+
+        const selA = document.getElementById("busca_associacao");
+        selA.innerHTML = '<option value="">Selecione uma associação</option>';
+        associacoes.forEach(a => { selA.innerHTML += `<option value="${a.ID_ASSOCIACAO}">${a.NOME_ASSOCIACAO}</option>`; });
+        
+      } catch (err) { exibirMensagem({ error: "Falha ao carregar dados iniciais." }); }
+    }
+
+    function limparFormulario() {
+      document.getElementById('conteudo-edicao').style.display = 'none';
+      document.getElementById('entidadeSelect').value = '';
+      document.getElementById('edit_data_visita').value = '';
+      document.getElementById('edit_campo_info_visita').value = '';
+      document.getElementById('templos').innerHTML = '';
+      document.getElementById('personalidades').innerHTML = '';
+      document.getElementById('associacoes').innerHTML = '';
+    }
+
+    async function carregarEntidade() {
+      entidade_id = document.getElementById("entidadeSelect").value;
+      if (!entidade_id) { limparFormulario(); return; }
+      
+      document.getElementById('conteudo-edicao').style.display = 'block';
+      const entidade = entidades.find(e => e.ID_VISITA == entidade_id);
+      if (!entidade) return;
+      
+      document.getElementById('edit_data_visita').value = entidade.DATA_VISITA || '';
+      document.getElementById('edit_campo_info_visita').value = entidade.CAMPO_INFO_VISITA || '';
+      
+      // As relações de uma visita não estão no modelo de dados, temos que buscar ao contrário.
+      // Esta parte fica pendente ou requer novas rotas na API. Por agora, vamos focar em adicionar.
+    }
+
+    function getData() {
+      return {
+        DATA_VISITA: document.getElementById('edit_data_visita').value || null,
+        CAMPO_INFO_VISITA: document.getElementById('edit_campo_info_visita').value.trim()
+      };
+    }
+    
+    async function atualizarEntidade() {
+      if (!entidade_id) return exibirMensagem({error: "Selecione uma visita para atualizar."});
+      const data = getData();
+      const res = await fetch(`${baseUrl}/api/visitas/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      exibirMensagem(await res.json());
+      if (res.ok) {
+        // Atualiza a lista localmente para refletir no dropdown
+        const index = entidades.findIndex(e => e.ID_VISITA == entidade_id);
+        if(index !== -1) {
+            entidades[index] = { ...entidades[index], ...data };
+            const dataFormatada = new Date(data.DATA_VISITA).toLocaleDateString('pt-BR');
+            document.querySelector(`#entidadeSelect option[value='${entidade_id}']`).textContent = `Visita em ${dataFormatada} (ID: ${entidade_id})`;
+        }
+      }
+    }
+
+    async function deletarEntidade() {
+      if (!entidade_id || !confirm("Tem certeza que deseja apagar esta visita? A ação não pode ser desfeita.")) return;
+      const res = await fetch(`${baseUrl}/api/visitas/${entidade_id}`, { method: 'DELETE' });
+      exibirMensagem(await res.json());
+      if (res.ok) { limparFormulario(); await carregarTudo(); }
+    }
+    
+    async function adicionarConexao(tipoRelacao) {
+        if (!entidade_id) return;
+        const id_rel = document.getElementById(`busca_${tipoRelacao}`).value;
+        if (!id_rel) return;
+
+        // A API está estruturada para adicionar a partir da entidade principal (templo, etc)
+        // Então, faremos o POST para a rota de relação dessa entidade
+        const endpoint = `${baseUrl}/api/relations/${tipoRelacao}/${id_rel}`;
+        const payload = { tipo: 'visita', id_rel: entidade_id };
+        
+        const res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        exibirMensagem(await res.json());
+        // Idealmente, recarregaríamos as relações aqui, mas o modelo atual não facilita isso.
+    }
+
+    function exibirMensagem(res) {
+        const el = document.getElementById("mensagem");
+        el.textContent = res.message || res.error;
+        el.className = res.message ? "success" : "error";
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    carregarTudo();
+  </script>
+</body>
+</html>

@@ -18,7 +18,7 @@
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .full-width { grid-column: 1 / -1; }
     .form-field { margin-bottom: 10px; text-align: left; }
-    .image-section, .related-card { margin-top: 20px; }
+    .image-section { margin-top: 20px; text-align: center; }
     .profile-image-preview { max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #eee; display: block; margin: 10px auto; object-fit: cover; }
     .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
     .carousel-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; text-align: center; }
@@ -31,7 +31,8 @@
     .success, .error { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
     .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
     .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
-    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; align-items: center; gap: 15px; }
+    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; margin-top: 20px; }
+    .related-item-card { display: flex; align-items: center; gap: 15px; }
     .related-image { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; flex-shrink: 0; }
     .related-content { flex-grow: 1; }
     .related-content p { margin: 5px 0; font-size: 0.9rem; color: #666; }
@@ -105,7 +106,14 @@
             <button onclick="buscarAdicionar('produto')">Adicionar</button>
         </div>
       </div>
-
+      <div class="related-card">
+        <h4>Visitas Registradas</h4>
+        <div id="visitas" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_visita"></select>
+            <button onclick="buscarAdicionar('visita')">Adicionar Visita</button>
+        </div>
+      </div>
       <button onclick="deletarEntidade()" style="background-color:#d9534f; margin-top: 30px;">Apagar Personalidade Permanentemente</button>
     </div>
     <div id="mensagem"></div>
@@ -120,21 +128,23 @@
 
     const baseUrl = 'http://localhost:5000';
     const entidade_tipo = 'personalidade';
-    let entidades = [], templos = [], associacoes = [], produtos = [];
+    let entidades = [], templos = [], associacoes = [], produtos = [], visitas = [];
     let entidade_id = null;
 
     async function carregarTudo() {
       try {
-        const [resEnt, resT, resA, resP] = await Promise.all([
+        const [resEnt, resT, resA, resP, resV] = await Promise.all([
           fetch(`${baseUrl}/api/personalidades?all=true`),
           fetch(`${baseUrl}/api/templos?all=true`),
           fetch(`${baseUrl}/api/associacoes?all=true`),
-          fetch(`${baseUrl}/api/produtos`)
+          fetch(`${baseUrl}/api/produtos`),
+          fetch(`${baseUrl}/api/visitas?all=true`) // <-- NOVO
         ]);
         entidades = (await resEnt.json()).data || [];
         templos = (await resT.json()).data || [];
         associacoes = (await resA.json()).data || [];
         produtos = (await resP.json()).data || [];
+        visitas = (await resV.json()).data || []; // <-- NOVO
 
         const selEnt = document.getElementById("entidadeSelect");
         selEnt.innerHTML = '<option value="">Selecione uma personalidade</option>';
@@ -151,6 +161,14 @@
         const selP = document.getElementById("busca_produto");
         selP.innerHTML = '<option value="">Selecione um produto</option>';
         produtos.forEach(p => { selP.innerHTML += `<option value="${p.ID_PRODUTO}">${p.NOME_PRODUTO}</option>`; });
+        
+        const selV = document.getElementById("busca_visita"); // <-- NOVO
+        selV.innerHTML = '<option value="">Selecione uma visita</option>';
+        visitas.forEach(v => { 
+            const dataFormatada = new Date(v.DATA_VISITA).toLocaleDateString('pt-BR');
+            selV.innerHTML += `<option value="${v.ID_VISITA}">Visita em ${dataFormatada} (ID: ${v.ID_VISITA})</option>`; 
+        });
+
       } catch (err) { exibirMensagem({ error: "Falha ao carregar dados iniciais." }); }
     }
 
@@ -163,6 +181,7 @@
       document.getElementById('templos').innerHTML = '';
       document.getElementById('associacoes').innerHTML = '';
       document.getElementById('produtos').innerHTML = '';
+      document.getElementById('visitas').innerHTML = ''; // <-- NOVO
       document.getElementById('carrossel_grid').innerHTML = '';
     }
 
@@ -199,21 +218,28 @@
         divT.innerHTML = '';
         (data.templos || []).forEach(t => {
             const imagemHtml = t.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${t.IMAGEM_PERFIL_URL}" alt="${t.NOME}" class="related-image">` : '';
-            divT.innerHTML += `<div class="related-card">${imagemHtml}<div class="related-content"><h4>${t.NOME}</h4><p>Função: ${t.FUNCAO || 'N/A'}</p><button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button></div></div>`;
+            divT.innerHTML += `<div class="related-item-card">${imagemHtml}<div class="related-content"><h4>${t.NOME}</h4><p>Função: ${t.FUNCAO || 'N/A'}</p><button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button></div></div>`;
         });
         
         const divA = document.getElementById('associacoes');
         divA.innerHTML = '';
         (data.associacoes || []).forEach(a => {
             const imagemHtml = a.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${a.IMAGEM_PERFIL_URL}" alt="${a.NOME_ASSOCIACAO}" class="related-image">` : '';
-            divA.innerHTML += `<div class="related-card">${imagemHtml}<div class="related-content"><h4>${a.NOME_ASSOCIACAO}</h4><button onclick="removerConexao('associacao', ${a.ID_ASSOCIACAO})">Remover</button></div></div>`;
+            divA.innerHTML += `<div class="related-item-card">${imagemHtml}<div class="related-content"><h4>${a.NOME_ASSOCIACAO}</h4><button onclick="removerConexao('associacao', ${a.ID_ASSOCIACAO})">Remover</button></div></div>`;
         });
         
         const divP = document.getElementById('produtos');
         divP.innerHTML = '';
         (data.produtos || []).forEach(p => {
             const imagemHtml = p.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="${p.NOME_PRODUTO}" class="related-image">` : '';
-            divP.innerHTML += `<div class="related-card">${imagemHtml}<div class="related-content"><h4>${p.NOME_PRODUTO}</h4><button onclick="removerConexao('produto', ${p.ID_PRODUTO})">Remover</button></div></div>`;
+            divP.innerHTML += `<div class="related-item-card">${imagemHtml}<div class="related-content"><h4>${p.NOME_PRODUTO}</h4><button onclick="removerConexao('produto', ${p.ID_PRODUTO})">Remover</button></div></div>`;
+        });
+
+        const divV = document.getElementById('visitas'); // <-- NOVO
+        divV.innerHTML = '';
+        (data.visitas || []).forEach(v => {
+            const dataFormatada = new Date(v.DATA_VISITA).toLocaleDateString('pt-BR');
+            divV.innerHTML += `<div class="related-item-card"><div class="related-content"><h4>Visita em ${dataFormatada}</h4><p>${v.CAMPO_INFO_VISITA || 'Sem detalhes.'}</p><button onclick="removerConexao('visita', ${v.ID_VISITA})">Remover</button></div></div>`;
         });
 
         const grid = document.getElementById('carrossel_grid');

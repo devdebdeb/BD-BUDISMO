@@ -30,32 +30,11 @@
     .success, .error { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
     .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
     .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
-    
-    /* --- ESTILOS ATUALIZADOS PARA OS CARDS DE RELAÇÃO --- */
-    .related-card {
-        background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-top: 20px;
-    }
-    .related-image {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid #ddd;
-        flex-shrink: 0;
-    }
-    .related-content {
-        flex-grow: 1;
-    }
-    .related-content p {
-        margin: 5px 0;
-        font-size: 0.9rem;
-        color: #666;
-    }
-
+    .related-card { background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px; margin-top: 20px; }
+    .related-item-card { display: flex; align-items: center; gap: 15px; }
+    .related-image { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; flex-shrink: 0; }
+    .related-content { flex-grow: 1; }
+    .related-content p { margin: 5px 0; font-size: 0.9rem; color: #666; }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .container { padding: 20px; } }
   </style>
 </head>
@@ -116,7 +95,14 @@
             <button onclick="buscarAdicionar('personalidade')">Adicionar</button>
         </div>
       </div>
-
+      <div class="related-card">
+        <h4>Visitas Registradas</h4>
+        <div id="visitas" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_visita"></select>
+            <button onclick="buscarAdicionar('visita')">Adicionar Visita</button>
+        </div>
+      </div>
       <button onclick="deletarEntidade()" style="background-color:#d9534f; margin-top: 30px;">Apagar Associação Permanentemente</button>
     </div>
     <div id="mensagem"></div>
@@ -131,19 +117,21 @@
 
     const baseUrl = 'http://localhost:5000';
     const entidade_tipo = 'associacao';
-    let entidades = [], templos = [], personalidades = [];
+    let entidades = [], templos = [], personalidades = [], visitas = [];
     let entidade_id = null;
 
     async function carregarTudo() {
       try {
-        const [resEnt, resT, resP] = await Promise.all([
+        const [resEnt, resT, resP, resV] = await Promise.all([
           fetch(`${baseUrl}/api/associacoes?all=true`),
           fetch(`${baseUrl}/api/templos?all=true`),
-          fetch(`${baseUrl}/api/personalidades?all=true`)
+          fetch(`${baseUrl}/api/personalidades?all=true`),
+          fetch(`${baseUrl}/api/visitas?all=true`) // <-- NOVO
         ]);
         entidades = (await resEnt.json()).data || [];
         templos = (await resT.json()).data || [];
         personalidades = (await resP.json()).data || [];
+        visitas = (await resV.json()).data || []; // <-- NOVO
 
         const selEnt = document.getElementById("entidadeSelect");
         selEnt.innerHTML = '<option value="">Selecione uma associação</option>';
@@ -156,6 +144,14 @@
         const selP = document.getElementById("busca_personalidade");
         selP.innerHTML = '<option value="">Selecione uma personalidade</option>';
         personalidades.forEach(p => { selP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`; });
+        
+        const selV = document.getElementById("busca_visita"); // <-- NOVO
+        selV.innerHTML = '<option value="">Selecione uma visita</option>';
+        visitas.forEach(v => { 
+            const dataFormatada = new Date(v.DATA_VISITA).toLocaleDateString('pt-BR');
+            selV.innerHTML += `<option value="${v.ID_VISITA}">Visita em ${dataFormatada} (ID: ${v.ID_VISITA})</option>`; 
+        });
+
       } catch (err) { exibirMensagem({ error: "Falha ao carregar dados iniciais." }); }
     }
 
@@ -167,6 +163,7 @@
       document.getElementById('imagem_perfil_preview').src = 'https://via.placeholder.com/200x200.png?text=Sem+Imagem';
       document.getElementById('templos').innerHTML = '';
       document.getElementById('personalidades').innerHTML = '';
+      document.getElementById('visitas').innerHTML = ''; // <-- NOVO
       document.getElementById('carrossel_grid').innerHTML = '';
     }
 
@@ -193,43 +190,32 @@
       await carregarRelacoes();
     }
     
-    // ##### FUNÇÃO ATUALIZADA #####
     async function carregarRelacoes() {
         if(!entidade_id) return;
         const res = await fetch(`${baseUrl}/api/relations/${entidade_tipo}/${entidade_id}`);
         const data = await res.json();
         
-        // --- LÓGICA ATUALIZADA PARA TEMPLOS VINCULADOS ---
         const divT = document.getElementById('templos');
         divT.innerHTML = '';
         (data.templos || []).forEach(t => {
             const imagemHtml = t.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${t.IMAGEM_PERFIL_URL}" alt="${t.NOME}" class="related-image">` : '';
-            divT.innerHTML += `
-                <div class="related-card">
-                    ${imagemHtml}
-                    <div class="related-content">
-                        <h4>${t.NOME}</h4>
-                        <button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button>
-                    </div>
-                </div>`;
+            divT.innerHTML += `<div class="related-item-card">${imagemHtml}<div class="related-content"><h4>${t.NOME}</h4><button onclick="removerConexao('templo', ${t.ID_TEMPLO})">Remover</button></div></div>`;
         });
         
-        // --- LÓGICA ATUALIZADA PARA PERSONALIDADES VINCULADAS ---
         const divP = document.getElementById('personalidades');
         divP.innerHTML = '';
         (data.personalidades || []).forEach(p => {
             const imagemHtml = p.IMAGEM_PERFIL_URL ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="${p.NOME_PERSONALIDADE}" class="related-image">` : '';
-            divP.innerHTML += `
-                <div class="related-card">
-                    ${imagemHtml}
-                    <div class="related-content">
-                        <h4>${p.NOME_PERSONALIDADE}</h4>
-                        <button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button>
-                    </div>
-                </div>`;
+            divP.innerHTML += `<div class="related-item-card">${imagemHtml}<div class="related-content"><h4>${p.NOME_PERSONALIDADE}</h4><button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button></div></div>`;
         });
 
-        // Lógica do carrossel (sem alterações)
+        const divV = document.getElementById('visitas'); // <-- NOVO
+        divV.innerHTML = '';
+        (data.visitas || []).forEach(v => {
+            const dataFormatada = new Date(v.DATA_VISITA).toLocaleDateString('pt-BR');
+            divV.innerHTML += `<div class="related-item-card"><div class="related-content"><h4>Visita em ${dataFormatada}</h4><p>${v.CAMPO_INFO_VISITA || 'Sem detalhes.'}</p><button onclick="removerConexao('visita', ${v.ID_VISITA})">Remover</button></div></div>`;
+        });
+
         const grid = document.getElementById('carrossel_grid');
         grid.innerHTML = '';
         (data.imagens_carrossel || []).forEach(img => {
@@ -239,12 +225,9 @@
 
     function getData() {
         return {
-            NOME_ASSOCIACAO: document.getElementById('edit_nome_associacao').value.trim(),
-            GRAU: document.getElementById('edit_grau').value.trim(),
-            PAIS_ATUACAO: document.getElementById('edit_pais_atuacao').value.trim(),
-            SEDE_ASSOCIACAO: document.getElementById('edit_sede_associacao').value.trim(),
-            DATA_ABERTURA_ASSOCIACAO: document.getElementById('edit_data_abertura_associacao').value || null,
-            DATA_FECHAMENTO_ASSOCIACAO: document.getElementById('edit_data_fechamento_associacao').value || null,
+            NOME_ASSOCIACAO: document.getElementById('edit_nome_associacao').value.trim(), GRAU: document.getElementById('edit_grau').value.trim(),
+            PAIS_ATUACAO: document.getElementById('edit_pais_atuacao').value.trim(), SEDE_ASSOCIACAO: document.getElementById('edit_sede_associacao').value.trim(),
+            DATA_ABERTURA_ASSOCIACAO: document.getElementById('edit_data_abertura_associacao').value || null, DATA_FECHAMENTO_ASSOCIACAO: document.getElementById('edit_data_fechamento_associacao').value || null,
             CAMPO_INFO_ASSOCIACAO: document.getElementById('edit_campo_info_associacao').value.trim()
         };
     }

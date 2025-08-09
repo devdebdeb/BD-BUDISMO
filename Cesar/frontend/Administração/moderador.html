@@ -53,11 +53,16 @@
       window.location.href = "login.html";
     }
 
+    // --- ADICIONADO: Variável para a URL base da API ---
+    // Deixe vazio ('') para o site online ou 'http://localhost:5000' para testes locais.
+    const baseUrl = 'http://localhost:5000';
+
     // Função para buscar estatísticas de UPLOADS
     async function carregarUploadStats() {
         const statsContainer = document.getElementById('uploads-stats');
         try {
-            const res = await fetch('http://localhost:5000/api/stats/uploads');
+            // --- ATUALIZADO: Usando a variável baseUrl ---
+            const res = await fetch(`${baseUrl}/api/stats/uploads`);
             const data = await res.json();
             if (res.ok) {
                 statsContainer.innerHTML = `
@@ -77,7 +82,8 @@
     async function carregarDbStats() {
         const statsContainer = document.getElementById('db-stats');
         try {
-            const res = await fetch('http://localhost:5000/api/stats/database');
+            // --- ATUALIZADO: Usando a variável baseUrl ---
+            const res = await fetch(`${baseUrl}/api/stats/database`);
             const data = await res.json();
             if (res.ok) {
                 statsContainer.innerHTML = `
