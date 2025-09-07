@@ -1,159 +1,225 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Produtos</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Produtos - Budismo na América Latina</title>
+
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        /* Estes estilos de tabela devem ser movidos para style.css se você quiser reutilizá-los. */
-        /* Se já estão em style.css, esta seção <style> pode ser removida. */
-        .data-table-container {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-radius: 8px;
-            background-color: #fff;
+        .table-wrapper {
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
         }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-
-        .data-table th, .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 0.95em;
-        }
-
         .data-table th {
-            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: var(--cor-fundo);
+        }
+        .placeholder-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--texto-secundario);
+            font-size: 1.5rem;
             font-weight: bold;
-            color: #555;
-            text-transform: uppercase;
-            font-size: 0.85em;
-        }
-
-        .data-table tbody tr:hover {
-            background-color: #f9f9f9;
-        }
-
-        .data-table tbody tr:nth-child(even) {
-            background-color: #fefefe;
-        }
-
-        #loading-message, #error-message {
-            text-align: center;
-            padding: 20px;
-            font-size: 1.1em;
-            color: #666;
-        }
-        #error-message {
-            color: #dc3545;
         }
     </style>
 </head>
 <body>
+
     <header>
-        <h1>BD Budismo</h1>
-<nav>
-    <ul>
-        <li><a href="default.html">Início</a></li>
-        <li><a href="templos.html">Templos</a></li>
-        <li><a href="associacoes.html">Associações</a></li>
-        <li><a href="personalidades.html">Personalidades</a></li>
-        <li><a href="produtos.html">Produtos</a></li>
-        <li><a href="visualizacao.html">Visualizações Power BI</a></li>
-        <li><a href="mapa_visualizacao.html">Visualizações do Mapa</a></li>
-        
-        <li><a href="../Administração/login.html" class="login-btn">Login</a></li>
-    </ul>
-</nav>
+        <h1><a href="../default.html">Budismo na América Latina</a></h1>
+        <nav>
+            <ul>
+                <li><a href="../default.html">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html">Personalidades</a></li>
+                <li><a href="produtos.html" class="active">Produtos</a></li>
+                <li><a href="visualizacaobi.html">Visualizações Power BI</a></li>
+                <li><a href="../Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
-        <section class="content-section">
-            <h2>Produtos culturais relevantes </h2>
-            <p>Descubra uma variedade de produtos relacionados à filosofia e prática budista, desde livros e revistas até artefatos e vestuário.</p>
-
-            <div id="produtos-table-container" class="data-table-container">
-                <p id="loading-message">Carregando produtos...</p>
-                <p id="error-message" style="display:none;"></p>
+        <div class="container">
+            <div class="page-header">
+                <h2>Explorar Produtos</h2>
+                <p>Pesquise e filtre os produtos culturais em nosso banco de dados.</p>
             </div>
 
-            <p>Seja para estudo ou prática, produtos são importantes manifestações culturais</p>
-        </section>
+            <section class="content-section">
+                <div class="form-container">
+                    <div class="filter-bar">
+                        <input type="text" id="nomeFilter" class="form-input" placeholder="Filtrar por nome...">
+                        <input type="text" id="tipoFilter" class="form-input" placeholder="Filtrar por tipo...">
+                        <div class="form-input-group">
+                            <label for="lancamentoFilter">Lançamento a partir de:</label>
+                            <input type="date" id="lancamentoFilter" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 20px;">
+                    <button id="exportBtn" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i> Exportar para Excel
+                    </button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Imagem</th>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Lançamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="produtos-body">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="loadingMessage" style="text-align: center; padding: 20px;">Carregando dados...</div>
+            </section>
+        </div>
     </main>
 
     <footer>
-        <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
-        <img src="brasao_puc.png" alt="Brasão PUC">
-        <img src="cnpq.png" alt="CNPq">
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="../brasao_puc.png" alt="Brasão PUC">
+                <img src="../cnpq.png" alt="CNPq">
+            </div>
+        </div>
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const tableContainer = document.getElementById('produtos-table-container');
-            const loadingMessage = document.getElementById('loading-message');
-            const errorMessage = document.getElementById('error-message');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const tableBody = document.getElementById('produtos-body');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            const nomeFilter = document.getElementById('nomeFilter');
+            const tipoFilter = document.getElementById('tipoFilter');
+            const lancamentoFilter = document.getElementById('lancamentoFilter');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            const apiBaseUrl = 'http://127.0.0.1:5000'; 
+            let cacheProdutos = [];
 
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/produtos');
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP! Status: ${response.status}`);
+            function removeAccents(str) {
+                if (!str) return "";
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            }
+
+            async function fetchAllData() {
+                loadingMessage.style.display = 'block';
+                tableBody.innerHTML = '';
+                const url = `${apiBaseUrl}/api/produtos?all=true`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    cacheProdutos = data.data || [];
+                    populateTable(cacheProdutos);
+                } catch (error) {
+                    console.error('Erro ao buscar dados:', error);
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: red;">Erro ao carregar os dados.</td></tr>';
+                } finally {
+                    loadingMessage.style.display = 'none';
                 }
-                const responseData = await response.json();
-                const produtos = responseData.data;
+            }
 
-                if (produtos.length === 0) {
-                    loadingMessage.textContent = 'Nenhum produto encontrado.';
+            function populateTable(items) {
+                tableBody.innerHTML = '';
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum produto encontrado com esses filtros.</td></tr>';
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const imagemHtml = item.IMAGEM_PERFIL_URL 
+                        ? `<img src="${apiBaseUrl}${item.IMAGEM_PERFIL_URL}" alt="Imagem de ${item.NOME_PRODUTO}" class="templo-image-thumbnail">`
+                        : `<div class="placeholder-image">${(item.NOME_PRODUTO || '?').charAt(0)}</div>`;
+
+                    const dataLancamento = item.DATA_LANCAMENTO 
+                        ? new Date(item.DATA_LANCAMENTO + 'T00:00:00').toLocaleDateString('pt-BR') 
+                        : "N/A";
+
+                    const row = `
+                        <tr>
+                            <td>${imagemHtml}</td>
+                            <td>${item.NOME_PRODUTO || 'N/A'}</td>
+                            <td>${item.TIPO_PRODUTO || 'N/A'}</td>
+                            <td>${dataLancamento}</td>
+                            <td><a href="detalhes.html?type=produto&id=${item.ID_PRODUTO}" class="btn btn-secondary btn-sm">Ver Detalhes</a></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            }
+
+            function getFilteredData() {
+                const nomeFiltro = removeAccents(nomeFilter.value).toLowerCase();
+                const tipoFiltro = removeAccents(tipoFilter.value).toLowerCase();
+                const lancamentoFiltro = lancamentoFilter.value;
+
+                return cacheProdutos.filter(p => {
+                    const matchNome = nomeFiltro ? (removeAccents(p.NOME_PRODUTO) || '').toLowerCase().includes(nomeFiltro) : true;
+                    const matchTipo = tipoFiltro ? (removeAccents(p.TIPO_PRODUTO) || '').toLowerCase().includes(tipoFiltro) : true;
+                    const matchLancamento = lancamentoFiltro ? (p.DATA_LANCAMENTO && p.DATA_LANCAMENTO >= lancamentoFiltro) : true;
+                    
+                    return matchNome && matchTipo && matchLancamento;
+                });
+            }
+
+            function applyFilters() {
+                const filteredData = getFilteredData();
+                populateTable(filteredData);
+            }
+
+            // Adiciona Listeners para todos os filtros
+            nomeFilter.addEventListener('input', applyFilters);
+            tipoFilter.addEventListener('input', applyFilters);
+            lancamentoFilter.addEventListener('change', applyFilters);
+
+            exportBtn.addEventListener('click', () => {
+                const dadosFiltrados = getFilteredData();
+
+                if (dadosFiltrados.length === 0) {
+                    alert("Nenhum dado para exportar com os filtros atuais.");
                     return;
                 }
 
-                const table = document.createElement('table');
-                table.classList.add('data-table');
+                const dadosParaExportar = dadosFiltrados.map(p => ({
+                    'Nome do Produto': p.NOME_PRODUTO,
+                    'Tipo': p.TIPO_PRODUTO,
+                    'Data de Lançamento': p.DATA_LANCAMENTO,
+                    'Descrição': p.CAMPO_INFO_PRODUTO
+                }));
 
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
+                const worksheet = XLSX.utils.json_to_sheet(dadosParaExportar);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Produtos");
+                XLSX.writeFile(workbook, "Produtos_Filtrados.xlsx");
+            });
 
-                const columnNames = Object.keys(produtos[0]);
-                columnNames.forEach(colName => {
-                    const th = document.createElement('th');
-                    if (colName === 'nome_produto') th.textContent = 'Nome do Produto';
-                    else if (colName === 'DATA_LANCAMENTO') th.textContent = 'Data de lançamento';
-                    else if (colName === 'TIPO_PRODUTO') th.textContent = 'Tipo de produto'
-                    else th.textContent = colName.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-
-                const tbody = document.createElement('tbody');
-                produtos.forEach(produto => {
-                    const tr = document.createElement('tr');
-                    columnNames.forEach(colName => {
-                        const td = document.createElement('td');
-                        td.textContent = produto[colName];
-                        tr.appendChild(td);
-                    });
-                    tbody.appendChild(tr);
-                });
-                table.appendChild(tbody);
-
-                loadingMessage.style.display = 'none';
-                tableContainer.appendChild(table);
-
-            } catch (error) {
-                console.error('Erro ao buscar produtos:', error);
-                loadingMessage.style.display = 'none';
-                errorMessage.textContent = 'Erro ao carregar os dados dos produtos. Tente novamente mais tarde.';
-                errorMessage.style.display = 'block';
-            }
+            // Inicia o carregamento dos dados
+            fetchAllData();
         });
     </script>
 </body>

@@ -1,426 +1,347 @@
-/* style.css - Código Global Centralizado */
+/* ==========================================================================
+   1. IMPORTAÇÃO DE FONTE E VARIÁVEIS DE COR
+   ========================================================================== */
 
-/* RESET BÁSICO E ESTILOS GERAIS DO BODY */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte moderna */
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa; /* Fundo cinza claro para a página */
-    color: #343a40; /* Cor de texto padrão */
-    line-height: 1.6;
-    display: flex; /* Para layout de footer fixo ou empilhado */
-    flex-direction: column; /* Conteúdo em coluna */
-    min-height: 100vh; /* Garante que a página ocupe no mínimo a altura da tela */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+
+:root {
+    --azul-principal: #192A51; 
+    --azul-hover: #111d3a;
+    --cor-fundo: #f8f9fa;
+    --cor-superficie: #ffffff;
+    --cor-borda: #dee2e6;
+    --texto-principal: #212529;
+    --texto-secundario: #6c757d;
+    --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* ESTILOS DO CABEÇALHO */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--cor-fundo);
+    color: var(--texto-principal);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   2. LAYOUT GERAL E CABEÇALHO
+   ========================================================================== */
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px; 
+}
+
 header {
-    background-color: #2c3e50; /* Azul escuro/quase preto para o cabeçalho */
+    background-color: var(--azul-principal);
     color: white;
-    padding: 15px 40px; /* Mais padding nas laterais */
-    display: flex; /* Garante o flexbox para alinhamento de h1 e nav */
-    justify-content: space-between; /* Alinha o h1 à esquerda e nav à direita */
-    align-items: center; /* Centraliza verticalmente */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Sombra mais pronunciada */
-    position: sticky; /* Cabeçalho fixo ao rolar */
+    padding: 15px 40px; 
+    position: sticky;
     top: 0;
-    z-index: 1000; /* Garante que o cabeçalho fique acima de outros elementos */
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 header h1 {
-    margin: 0;
-    font-size: 2em; /* Título maior */
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-size: 1.5em;
+    font-weight: 800;
+    color: white;
 }
 
-/* NAVEGAÇÃO */
+header h1 a {
+    color: white;
+    text-decoration: none; /* Remove o sublinhado do link */
+}
+
 nav ul {
     list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex; /* Links da navegação em linha */
-    flex-wrap: wrap; /* Permite que os links quebrem linha em telas pequenas */
-    justify-content: flex-end; /* Alinha os links à direita */
-    align-items: center; /* Centraliza verticalmente os itens da nav */
-}
-
-nav ul li {
-    margin-left: 30px; /* Mais espaço entre os itens do menu */
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 nav ul li a {
-    color: white;
     text-decoration: none;
-    font-weight: 600; /* Levemente negrito */
-    padding: 8px 15px; /* Mais padding para os botões/links */
-    transition: background-color 0.3s ease, transform 0.2s ease; /* Transição suave */
-    border-radius: 5px;
-    font-size: 1.05em;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-nav ul li a:hover {
-    background-color: #3f587a; /* Cor de hover mais clara */
-    transform: translateY(-2px); /* Efeito sutil de levantar */
-}
-
+nav ul li a:hover,
 nav ul li a.active {
-    background-color: #5b7da7; /* Cor para o link da página ativa */
-    font-weight: bold;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ESTILOS DO CONTEÚDO PRINCIPAL (MAIN) - Estrutura de Container */
+/* ==========================================================================
+   3. BOTÕES
+   ========================================================================== */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--azul-principal);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--azul-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(25, 42, 81, 0.3);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--azul-principal);
+    border: 2px solid var(--azul-principal);
+}
+.btn-secondary:hover {
+    background-color: var(--azul-principal);
+    color: white;
+}
+
+/* ==========================================================================
+   4. ESTILOS DE PÁGINA
+   ========================================================================== */
+
 main {
-    flex-grow: 1; /* Permite que o main ocupe o espaço restante */
-    padding: 30px 20px; /* Padding vertical e horizontal para o main */
-    max-width: 1600px; /* Largura máxima para o conteúdo geral */
-    margin: 0 auto; /* Centraliza o conteúdo geral */
-    display: flex; /* Flexbox para organizar seções */
-    flex-direction: column; /* Conteúdo em coluna por padrão */
-    align-items: center; /* Centraliza itens dentro do main (como content-section) */
-    min-height: calc(100vh - 180px); /* Altura mínima para o main, considerando header e footer */
+    padding: 60px 0;
+    flex-grow: 1; 
 }
 
-/* ESTILOS DE SEÇÃO DE CONTEÚDO (O "CARTÃO") - Padrão para as páginas */
-.content-section {
-    padding: 40px; /* Aumenta o padding interno */
-    text-align: center; /* Centraliza textos, ajuste se quiser left-aligned */
-    background-color: #ffffff; /* Fundo branco para o "cartão" */
-    border-radius: 12px; /* Cantos mais arredondados */
-    margin: 20px 0; /* Margem superior/inferior, sem margens laterais automáticas */
-    width: 100%; /* Ocupa 100% da largura do main (que já tem max-width) */
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1); /* Sombra mais destacada para o efeito "flutuante" */
-    box-sizing: border-box; /* Inclui padding e border na largura/altura */
+.hero-section {
+    text-align: center;
+    padding: 60px 0;
 }
-
-.content-section h2 {
-    color: #2c3e50; /* Cor de título mais escura para contraste */
-    margin-bottom: 25px; /* Mais espaço abaixo do título */
-    font-size: 2.8em; /* Título bem maior */
-    font-weight: 800; /* Extra negrito para o título principal da página */
+.hero-section h2 {
+    font-size: 3em;
+    font-weight: 800;
+    margin-bottom: 15px;
     letter-spacing: -0.02em;
 }
-
-.content-section p {
-    color: #7f8c8d; /* Cor de parágrafo mais suave */
-    font-size: 1.2em; /* Texto descritivo maior */
-    line-height: 1.8;
-    max-width: 800px; /* Limita a largura do parágrafo para melhor leitura */
-    margin: 0 auto 30px auto; /* Centraliza o parágrafo e adiciona espaço abaixo */
+.hero-section p.subtitle {
+    font-size: 1.2em;
+    color: var(--texto-secundario);
+    max-width: 650px;
+    margin: 0 auto 40px auto;
+}
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.content-section {
+    background-color: var(--cor-superficie);
+    border-radius: 12px;
+    padding: 40px;
+    margin-top: 50px;
+    box-shadow: var(--sombra-suave);
+    border: 1px solid var(--cor-borda);
+}
+.content-section h2 {
+    text-align: center;
+    font-size: 2em;
+    font-weight: 700;
+    margin-bottom: 30px;
 }
 
-/* Contêiner para o ÚNICO IFRAME (Power BI) - CORRIGIDO PARA CENTRALIZAÇÃO */
-.iframe-container {
-    position: relative;
-    /* Remova display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; */
-    /* Essas propriedades não são necessárias para centralizar um único item block-level. */
-
-    max-width: 900px; /* Largura máxima que o gráfico pode ter. Ajuste este valor. */
-    margin: 20px auto; /* CENTRALIZA O CONTÊINER HORIZONTALMENTE */
-    
-    height: 0;
-    padding-bottom: 56.25%; /* Proporção 16:9 padrão (altura / largura * 100%). Ajuste se seu relatório no Power BI tiver outra proporção (ex: 62.25% para 600x373.5) */
-    
-    overflow: hidden;
-    border: 1px solid #dcdcdc; /* Borda leve */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Sombra para profundidade */
-    border-radius: 8px; /* Cantos arredondados */
-    background-color: #ecf0f1; /* Fundo enquanto carrega */
+.total-counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    text-align: center;
 }
-
-/* O iframe real dentro do container */
-.iframe-container iframe {
-    position: absolute; /* Preenche o pai com position: relative */
-    top: 0;
-    left: 0;
-    width: 100%;          /* O iframe preenche a largura do container */
-    height: 100%;         /* O iframe preenche a altura do container (definida pelo padding-bottom) */
-    border: none;         /* Remove a borda do iframe embutido */
-}
-
-/* REMOVIDO: As regras .iframe-wrapper e .iframe-wrapper iframe foram removidas, pois não são mais necessárias para um único iframe principal. */
-
-
-/* Estilos Específicos para Tabelas de Dados (para as listagens de Produtos, Associações, etc.) */
-.data-table-container {
-    width: 100%;
-    overflow-x: auto; /* Adiciona rolagem horizontal se a tabela for muito larga */
-    margin-top: 30px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05); /* Sombra sutil para a tabela */
+.count-item {
+    background-color: var(--cor-fundo);
+    padding: 20px;
     border-radius: 8px;
-    background-color: #fff;
+}
+.count-item strong {
+    display: block;
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--azul-principal);
 }
 
+/* ==========================================================================
+   5. RODAPÉ E RESPONSIVIDADE
+   ========================================================================== */
+
+footer {
+    text-align: center;
+    padding: 40px 0;
+    background-color: var(--azul-principal);
+    color: rgba(255, 255, 255, 0.85);
+}
+footer p {
+    font-size: 0.9em;
+}
+footer .logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-top: 15px;
+}
+footer .logos img {
+    height: 35px;
+}
+
+/* ==========================================================================
+   6. ESTILOS ESPECÍFICOS PARA PÁGINAS DE VISUALIZAÇÃO (Templos, etc.)
+   ========================================================================== */
+
+.page-header {
+    text-align: center;
+    margin: 20px 0 40px;
+}
+.page-header h2 {
+    font-size: 2.5em;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+.page-header p {
+    font-size: 1.1em;
+    color: var(--texto-secundario);
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.search-bar, .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+.form-input, .form-select {
+    flex-grow: 1;
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--cor-borda);
+    font-size: 1em;
+    min-width: 150px;
+    background-color: white;
+}
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--azul-principal);
+    box-shadow: 0 0 0 3px rgba(25, 42, 81, 0.2);
+}
+/* MUDANÇA: Estilos para os novos filtros de data e select */
+.form-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-grow: 1;
+}
+.form-input-group label {
+    font-size: 0.85em;
+    color: var(--texto-secundario);
+    font-weight: 500;
+    padding-left: 5px;
+}
+.form-select {
+    height: 48px; /* Altura consistente com outros inputs */
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
 .data-table {
     width: 100%;
-    border-collapse: collapse; /* Remove espaçamento entre bordas das células */
-    min-width: 600px; /* Garante que a tabela não fique muito estreita em mobile */
+    border-collapse: collapse;
 }
-
 .data-table th, .data-table td {
     padding: 12px 15px;
     text-align: left;
-    border-bottom: 1px solid #e0e0e0; /* Linha divisória suave */
-    font-size: 0.95em;
+    border-bottom: 1px solid var(--cor-borda);
+    vertical-align: middle;
 }
-
 .data-table th {
-    background-color: #f2f2f2; /* Fundo para o cabeçalho da tabela */
-    font-weight: bold;
-    color: #555;
+    background-color: var(--cor-fundo);
+    font-weight: 700;
+    font-size: 0.9em;
     text-transform: uppercase;
-    font-size: 0.85em;
+    color: var(--texto-secundario);
+}
+.data-table tr:hover {
+    background-color: #f1f3f5;
 }
 
-.data-table tbody tr:hover {
-    background-color: #f9f9f9; /* Efeito de hover nas linhas */
-}
-
-.data-table tbody tr:nth-child(even) {
-    background-color: #fefefe; /* Fundo zebrado para melhor legibilidade */
-}
-
-/* Mensagens de carregamento/erro para tabelas */
-#loading-message, #error-message {
-    text-align: center;
-    padding: 20px;
-    font-size: 1.1em;
-    color: #666;
-}
-#error-message {
-    color: #dc3545; /* Vermelho para erro */
-}
-
-/* ESTILOS DO RODAPÉ */
-footer {
-    background-color: #2c3e50; /* Mesma cor do cabeçalho */
-    color: white;
-    text-align: center;
-    padding: 20px;
+.pagination-controls {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 10px; /* Espaço entre os elementos do rodapé */
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.2); /* Sombra para o rodapé */
-    margin-top: auto; /* Garante que o rodapé fique no final da página */
+    padding-top: 20px;
+    margin-top: 10px;
+    border-top: 1px solid var(--cor-borda);
 }
 
-footer p {
-    margin: 0;
+.btn-sm {
+    padding: 6px 12px;
     font-size: 0.9em;
 }
 
-footer img {
-    height: 40px; /* Tamanho das imagens do rodapé */
-    margin: 0 10px;
+.templo-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.templo-image-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: #e9ecef;
 }
 
-/* Media Queries para Responsividade */
-@media (max-width: 1024px) {
-    header, footer {
-        padding: 15px 20px;
-    }
-    header h1 {
-        font-size: 1.6em;
-    }
-    nav ul li {
-        margin-left: 15px;
-    }
-    nav ul li a {
-        padding: 6px 10px;
-        font-size: 1em;
-    }
-    main {
-        padding: 20px 15px;
-    }
-    .content-section {
-        padding: 30px;
-    }
-    .content-section h2 {
-        font-size: 2.2em;
-    }
-    .content-section p {
-        font-size: 1.1em;
-    }
-    /* Não há iframe-container ou wrapper com padding-bottom aqui diretamente, o wrapper é para isso */
-}
-
+/* Media Queries */
 @media (max-width: 768px) {
-    header {
-        flex-direction: column; /* Empilha o título e a navegação */
-        align-items: flex-start;
-        padding: 10px 15px;
+    header, .container {
+        padding-left: 20px;
+        padding-right: 20px;
     }
-    header h1 {
-        font-size: 1.4em;
-        margin-bottom: 10px;
+    header {
+        flex-direction: column;
+        gap: 15px;
+        padding-top: 20px;
+        padding-bottom: 20px;
     }
     nav ul {
-        flex-direction: column; /* Empilha os links do menu */
-        align-items: flex-start;
-        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
     }
-    nav ul li {
-        margin: 5px 0;
-        width: 100%;
-    }
-    nav ul li a {
-        display: block; /* Ocupa a largura total para cliques fáceis */
-        text-align: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.1); /* Linha divisória nos links */
-    }
-    nav ul li:last-child a {
-        border-bottom: none;
-    }
-
-    main {
-        padding: 15px 10px;
-    }
-
-    .content-section {
-        padding: 25px 15px;
-        border-radius: 8px;
-        margin: 10px 0;
-    }
-    .content-section h2 {
-        font-size: 1.8em;
-        margin-bottom: 15px;
-    }
-    .content-section p {
-        font-size: 0.95em;
-        margin-bottom: 25px;
-    }
-    /* Não há iframe-container ou wrapper com padding-bottom aqui diretamente, o wrapper é para isso */
-}
-
-/* Overlay escuro que cobre a tela */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente */
-    display: flex; /* Para centralizar o modal */
-    justify-content: center;
-    align-items: center;
-    z-index: 1001; /* Acima do header e de todo o conteúdo */
-    opacity: 0; /* Começa invisível */
-    visibility: hidden; /* Começa invisível */
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.modal-overlay.active {
-    opacity: 1; /* Fica visível */
-    visibility: visible; /* Fica visível */
-}
-
-/* Caixa do modal (o pop-up em si) */
-.modal-content {
-    background-color: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 90%;
-    max-width: 800px; /* Largura máxima do modal */
-    transform: translateY(20px); /* Começa um pouco abaixo */
-    transition: transform 0.3s ease;
-    position: relative; /* Para o botão de fechar */
-    max-height: 90vh; /* Altura máxima da viewport */
-    overflow-y: auto; /* Adiciona rolagem se o conteúdo for muito longo */
-    text-align: left; /* Alinha o texto dentro do modal à esquerda */
-}
-
-.modal-overlay.active .modal-content {
-    transform: translateY(0); /* Sobe para a posição final */
-}
-
-/* Botão de fechar o modal */
-.modal-close-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 1.8em;
-    color: #888;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.modal-close-btn:hover {
-    color: #333;
-}
-
-/* Título dentro do modal */
-.modal-content h3 {
-    text-align: center;
-    color: #2c3e50;
-    font-size: 2em;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-/* Itens de detalhe dentro do modal */
-.modal-detail-item {
-    margin-bottom: 10px;
-    padding: 5px 0;
-    border-bottom: 1px dashed #f0f0f0; /* Linha tracejada suave */
-}
-
-.modal-detail-item:last-child {
-    border-bottom: none; /* Remove a linha do último item */
-}
-
-.modal-detail-item strong {
-    display: inline-block;
-    min-width: 120px; /* Largura mínima para rótulos */
-    color: #555;
-    font-size: 1em;
-}
-
-.modal-detail-item span {
-    font-size: 1em;
-    color: #343a40;
-}
-
-/* Responsividade para o modal */
-@media (max-width: 768px) {
-    .modal-content {
-        padding: 20px;
-        border-radius: 8px;
-        width: 95%; /* Ocupa mais largura em telas pequenas */
-    }
-    .modal-content h3 {
-        font-size: 1.5em;
-    }
-    .modal-detail-item strong, .modal-detail-item span {
-        font-size: 0.9em;
+    .hero-section h2 {
+        font-size: 2.5em;
     }
 }
-.login-btn {
-    background: #007bff; /* Cor de fundo azul (pode ajustar) */
-    color: #fff; /* Cor do texto */
-    padding: 8px 16px; /* Espaçamento interno */
-    border: none; /* Sem borda */
-    border-radius: 20px; /* Bordas arredondadas (faz parecer um pill button) */
-    text-decoration: none; /* Remove sublinhado do link */
-    transition: background 0.3s ease; /* Transição suave na interação */
-    cursor: pointer; /* Muda o cursor para indicar que é clicável */
-    font-size: 0.9em; /* Tamanho da fonte */
-    margin-left: 15px; /* Adiciona um espaço à esquerda para separar dos outros links */
-    display: inline-block; /* Garante que o padding funcione corretamente */
-}
-
-.login-btn:hover {
-    background: #0056b3; /* Cor de fundo mais escura ao passar o mouse */
-}
-/* No seu CSS fornecido, esta chave final '}' estava no lugar errado, fechando a media query anterior prematuramente.
-   Ela foi movida para o final para fechar o media query principal de 768px, conforme a estrutura original.
-   Se esta chave pertencia a outra regra ou estava intencionalmente ali, por favor, ajuste.
-*/
-/* Fechamento correto da media query @media (max-width: 768px) */

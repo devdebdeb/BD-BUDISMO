@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizações de Dados - BD Budismo</title>
+
+    <link rel="stylesheet" href="../style.css"> 
+
+    <style>
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            /* Proporção 16:9 para o painel (9 / 16 = 0.5625) */
+            padding-top: 56.25%; 
+            border-radius: 8px;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid var(--cor-borda);
+            margin-top: 30px;
+        }
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><a href="../default.html">Budismo na América Latina</a></h1>
+        <nav>
+            <ul>
+                <li><a href="../default.html">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html">Personalidades</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="visualizacao.html" class="active">Visualizações</a></li>
+                <li><a href="../Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h2>Análise de Dados Interativa</h2>
+                <p>Explore os dados geográficos e quantitativos do nosso banco de dados através do painel interativo abaixo.</p>
+            </div>
+
+            <section class="content-section">
+                <div class="iframe-container">
+                    <iframe title="templos_pais" src="https://app.powerbi.com/view?r=eyJrIjoiODhiYzlhNjEtNWFiOC00ZjU5LWIxODEtYjY0MWMxYWNmOWYyIiwidCI6IjhlYjI5MjAxLWEyN2QtNDMwMi04NDczLWM5ODJlYjViZTkzNSJ9" frameborder="0" allowFullScreen="true"></iframe>
+                </div>
+                <p style="text-align: center; margin-top: 20px; color: var(--texto-secundario);">
+                    Interaja com o relatório clicando nos elementos visuais e utilize os filtros disponíveis no painel para refinar a sua análise.
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="../brasao_puc.png" alt="Brasão PUC">
+                <img src="../cnpq.png" alt="CNPq">
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

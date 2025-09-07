@@ -1,241 +1,251 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personalidades - BD Budismo</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personalidades - Budismo na América Latina</title>
+
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        /* Remova a tag <style> se você já moveu os estilos de tabela para style.css */
-        .data-table-container { width: 100%; overflow-x: auto; margin-top: 30px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px; background-color: #fff; }
-        .data-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 0.95em; }
-        .data-table th { background-color: #f2f2f2; font-weight: bold; color: #555; text-transform: uppercase; font-size: 0.85em; }
-        .data-table tbody tr:hover { background-color: #f9f9f9; }
-        .data-table tbody tr:nth-child(even) { background-color: #fefefe; }
-        #loading-message, #error-message { text-align: center; padding: 20px; font-size: 1.1em; color: #666; }
-        #error-message { color: #dc3545; }
-        /* Estilos do botão de detalhes */
-        .detalhes-btn {
-            background: #007bff;
-            color: #fff;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 20px;
-            text-decoration: none;
-            transition: background 0.3s;
-            cursor: pointer;
-            font-size: 0.9em;
+        .table-wrapper {
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
         }
-        .detalhes-btn:hover {
-            background: #0056b3;
+        .data-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: var(--cor-fundo);
+        }
+        .placeholder-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--texto-secundario);
+            font-size: 1.5rem;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
+
     <header>
-        <h1>BD Budismo</h1>
-<nav>
-    <ul>
-        <li><a href="default.html">Início</a></li>
-        <li><a href="templos.html">Templos</a></li>
-        <li><a href="associacoes.html">Associações</a></li>
-        <li><a href="personalidades.html">Personalidades</a></li>
-        <li><a href="produtos.html">Produtos</a></li>
-        <li><a href="visualizacao.html">Visualizações Power BI</a></li>
-        <li><a href="mapa_visualizacao.html">Visualizações do Mapa</a></li>
-        
-        <li><a href="../Administração/login.html" class="login-btn">Login</a></li>
-    </ul>
-</nav>
+        <h1><a href="../default.html">Budismo na América Latina</a></h1>
+        <nav>
+            <ul>
+                <li><a href="../default.html">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html" class="active">Personalidades</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="visualizacaobi.html">Visualizações Power BI</a></li>
+                <li><a href="../Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
-        <section class="content-section">
-            <h2>Personalidades Budistas</h2>
-            <p>Conheça as figuras históricas e contemporâneas que moldaram e difundiram o budismo na América Latina e Caribe.</p>
-
-            <div id="personalidades-table-container" class="data-table-container">
-                <p id="loading-message">Carregando personalidades...</p>
-                <p id="error-message" style="display:none;"></p>
+        <div class="container">
+            <div class="page-header">
+                <h2>Explorar Personalidades</h2>
+                <p>Pesquise e filtre as personalidades em nosso banco de dados.</p>
             </div>
 
-            <p>Suas vidas e ensinamentos continuam a inspirar praticantes ao redor do mundo.</p>
-        </section>
+            <section class="content-section">
+                <div class="form-container">
+                    <div class="filter-bar">
+                        <input type="text" id="nomeFilter" class="form-input" placeholder="Filtrar por nome...">
+                        <input type="text" id="paisFilter" class="form-input" placeholder="Filtrar por país...">
+                        <input type="text" id="nivelFilter" class="form-input" placeholder="Filtrar por nível/título...">
+                        <input type="text" id="racaFilter" class="form-input" placeholder="Filtrar por raça...">
+                        <select id="generoFilter" class="form-select">
+                            <option value="">Todos os Gêneros</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Não-binário">Não-binário</option>
+                        </select>
+                        <div class="form-input-group">
+                            <label for="nascimentoFilter">Nascimento a partir de:</label>
+                            <input type="date" id="nascimentoFilter" class="form-input">
+                        </div>
+                        <div class="form-input-group">
+                            <label for="morteFilter">Morte até:</label>
+                            <input type="date" id="morteFilter" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 20px;">
+                    <button id="exportBtn" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i> Exportar para Excel
+                    </button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Imagem</th>
+                                <th>Nome</th>
+                                <th>País de Origem</th>
+                                <th>Nível</th>
+                                <th>Gênero</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personalidades-body">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="loadingMessage" style="text-align: center; padding: 20px;">Carregando dados...</div>
+            </section>
+        </div>
     </main>
 
     <footer>
-        <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
-        <img src="brasao_puc.png" alt="Brasão PUC">
-        <img src="cnpq.png" alt="CNPq">
-    </footer>
-
-    <div id="personalidadeDetailsModal" class="modal-overlay">
-        <div class="modal-content">
-            <button class="modal-close-btn">&times;</button>
-            <h3 id="modal-personalidade-nome"></h3>
-            <div id="modal-personalidade-details-body">
-                <p>Carregando...</p>
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="../brasao_puc.png" alt="Brasão PUC">
+                <img src="../cnpq.png" alt="CNPq">
             </div>
         </div>
-    </div>
+    </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const tableContainer = document.getElementById('personalidades-table-container');
-            const loadingMessage = document.getElementById('loading-message');
-            const errorMessage = document.getElementById('error-message');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const tableBody = document.getElementById('personalidades-body');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            const nomeFilter = document.getElementById('nomeFilter');
+            const paisFilter = document.getElementById('paisFilter');
+            const nivelFilter = document.getElementById('nivelFilter');
+            const racaFilter = document.getElementById('racaFilter');
+            const generoFilter = document.getElementById('generoFilter');
+            const nascimentoFilter = document.getElementById('nascimentoFilter');
+            const morteFilter = document.getElementById('morteFilter');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            const apiBaseUrl = 'http://127.0.0.1:5000'; 
+            let cachePersonalidades = [];
 
-            // Elementos do Modal
-            const modalOverlay = document.getElementById('personalidadeDetailsModal');
-            const modalCloseBtn = modalOverlay.querySelector('.modal-close-btn');
-            const modalPersonalidadeNome = document.getElementById('modal-personalidade-nome');
-            const modalPersonalidadeDetailsBody = document.getElementById('modal-personalidade-details-body');
+            function removeAccents(str) {
+                if (!str) return "";
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            }
 
-            // Event Listeners do Modal
-            modalCloseBtn.addEventListener('click', () => {
-                modalOverlay.classList.remove('active');
-            });
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    modalOverlay.classList.remove('active');
+            async function fetchAllData() {
+                loadingMessage.style.display = 'block';
+                tableBody.innerHTML = '';
+                const url = `${apiBaseUrl}/api/personalidades?all=true`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    cachePersonalidades = data.data;
+                    populateTable(cachePersonalidades);
+                } catch (error) {
+                    console.error('Erro ao buscar dados:', error);
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Erro ao carregar os dados.</td></tr>';
+                } finally {
+                    loadingMessage.style.display = 'none';
                 }
-            });
+            }
 
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/personalidades?all=true');
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP! Status: ${response.status}`);
+            function populateTable(items) {
+                tableBody.innerHTML = '';
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma personalidade encontrada com esses filtros.</td></tr>';
+                    return;
                 }
-                const responseData = await response.json();
-                const personalidades = responseData.data;
+                
+                items.forEach(item => {
+                    const imagemHtml = item.IMAGEM_PERFIL_URL 
+                        ? `<img src="${apiBaseUrl}${item.IMAGEM_PERFIL_URL}" alt="Imagem de ${item.NOME_PERSONALIDADE}" class="templo-image-thumbnail">`
+                        : `<div class="placeholder-image">${(item.NOME_PERSONALIDADE || '?').charAt(0)}</div>`;
 
-                if (personalidades.length === 0) {
-                    loadingMessage.textContent = 'Nenhuma personalidade encontrada.';
+                    const row = `
+                        <tr>
+                            <td>${imagemHtml}</td>
+                            <td>${item.NOME_PERSONALIDADE || 'N/A'}</td>
+                            <td>${item.PAIS_ORIGEM_PERSONALIDADE || 'N/A'}</td>
+                            <td>${item.NIVEL || 'N/A'}</td>
+                            <td>${item.GENERO || 'N/A'}</td>
+                            <td><a href="detalhes.html?type=personalidade&id=${item.ID_PERSONALIDADE}" class="btn btn-secondary btn-sm">Ver Detalhes</a></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            }
+
+            function getFilteredData() {
+                const nomeFiltro = removeAccents(nomeFilter.value).toLowerCase();
+                const paisFiltro = removeAccents(paisFilter.value).toLowerCase();
+                const nivelFiltro = removeAccents(nivelFilter.value).toLowerCase();
+                const racaFiltro = removeAccents(racaFilter.value).toLowerCase();
+                const generoFiltro = generoFilter.value;
+                const nascimentoFiltro = nascimentoFilter.value;
+                const morteFiltro = morteFilter.value;
+
+                return cachePersonalidades.filter(p => {
+                    const matchNome = nomeFiltro ? (removeAccents(p.NOME_PERSONALIDADE) || '').toLowerCase().includes(nomeFiltro) : true;
+                    const matchPais = paisFiltro ? (removeAccents(p.PAIS_ORIGEM_PERSONALIDADE) || '').toLowerCase().includes(paisFiltro) : true;
+                    const matchNivel = nivelFiltro ? (removeAccents(p.NIVEL) || '').toLowerCase().includes(nivelFiltro) : true;
+                    const matchRaca = racaFiltro ? (removeAccents(p.RACA) || '').toLowerCase().includes(racaFiltro) : true;
+                    const matchGenero = generoFiltro ? p.GENERO === generoFiltro : true;
+                    const matchNascimento = nascimentoFiltro ? (p.DATA_NASCIMENTO && p.DATA_NASCIMENTO >= nascimentoFiltro) : true;
+                    const matchMorte = morteFiltro ? (p.DATA_MORTE && p.DATA_MORTE <= morteFiltro) : true;
+                    
+                    return matchNome && matchPais && matchNivel && matchRaca && matchGenero && matchNascimento && matchMorte;
+                });
+            }
+
+            function applyFilters() {
+                const filteredData = getFilteredData();
+                populateTable(filteredData);
+            }
+
+            // Adiciona Listeners para todos os filtros
+            [nomeFilter, paisFilter, nivelFilter, racaFilter].forEach(el => el.addEventListener('input', applyFilters));
+            [generoFilter, nascimentoFilter, morteFilter].forEach(el => el.addEventListener('change', applyFilters));
+
+            exportBtn.addEventListener('click', () => {
+                const dadosFiltrados = getFilteredData();
+
+                if (dadosFiltrados.length === 0) {
+                    alert("Nenhum dado para exportar com os filtros atuais.");
                     return;
                 }
 
-                const table = document.createElement('table');
-                table.classList.add('data-table');
+                const dadosParaExportar = dadosFiltrados.map(p => ({
+                    'Nome': p.NOME_PERSONALIDADE,
+                    'País de Origem': p.PAIS_ORIGEM_PERSONALIDADE,
+                    'Nível/Título': p.NIVEL,
+                    'Gênero': p.GENERO,
+                    'Raça': p.RACA,
+                    'Data de Nascimento': p.DATA_NASCIMENTO,
+                    'Data de Morte': p.DATA_MORTE,
+                    'Biografia': p.CAMPO_INFO_PERSONALIDADE
+                }));
 
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                const columnNames = Object.keys(personalidades[0]);
-                // Filtra o ID, se vier com o nome 'id' ou 'ID_PERSONALIDADE'
-                const columnsToDisplay = columnNames.filter(col => col !== 'id' && col !== 'ID_PERSONALIDADE');
+                const worksheet = XLSX.utils.json_to_sheet(dadosParaExportar);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Personalidades");
+                XLSX.writeFile(workbook, "Personalidades_Filtradas.xlsx");
+            });
 
-                const friendlyHeaders = {
-                    'NOME_PERSONALIDADE': 'Nome Completo',
-                    'GENERO': 'Gênero',
-                    'RACA': 'Raça/Etnia',
-                    'NIVEL': 'Nível',
-                    'PAIS_ORIGEM_PERSONALIDADE': 'País de Origem',
-                    'DATA_NASCIMENTO': 'Data de nascimento',
-                    'DATA_MORTE': 'Data de Óbito',
-                    
-                    
-                };
-
-                columnsToDisplay.forEach(colName => {
-                    const th = document.createElement('th');
-                    th.textContent = friendlyHeaders[colName] || colName.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-                    headerRow.appendChild(th);
-                });
-                const thAcoes = document.createElement('th');
-                thAcoes.textContent = 'Detalhes';
-                headerRow.appendChild(thAcoes);
-
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-
-                const tbody = document.createElement('tbody');
-                personalidades.forEach(personalidade => {
-                    const tr = document.createElement('tr');
-                    columnsToDisplay.forEach(colName => {
-                        const td = document.createElement('td');
-                        td.textContent = personalidade[colName] || 'N/A';
-                        tr.appendChild(td);
-                    });
-                    const tdAcoes = document.createElement('td');
-                    const verMaisBtn = document.createElement('button');
-                    verMaisBtn.classList.add('detalhes-btn');
-                    verMaisBtn.textContent = 'Ver mais';
-                    // Assume que o ID da personalidade é 'ID_PERSONALIDADE'
-                    verMaisBtn.dataset.id = personalidade.ID_PERSONALIDADE;
-                    verMaisBtn.addEventListener('click', () => showPersonalidadeDetailsModal(personalidade.ID_PERSONALIDADE));
-                    tdAcoes.appendChild(verMaisBtn);
-                    tr.appendChild(tdAcoes);
-                    tbody.appendChild(tr);
-                });
-                table.appendChild(tbody);
-
-                loadingMessage.style.display = 'none';
-                tableContainer.appendChild(table);
-
-            } catch (error) {
-                console.error('Erro ao buscar personalidades:', error);
-                loadingMessage.style.display = 'none';
-                errorMessage.textContent = 'Erro ao carregar os dados das personalidades. Tente novamente mais tarde.';
-                errorMessage.style.display = 'block';
-            }
+            // Inicia o carregamento dos dados
+            fetchAllData();
         });
-
-        // Função para mostrar os detalhes da personalidade em um modal
-        async function showPersonalidadeDetailsModal(personalidadeId) {
-            const modalOverlay = document.getElementById('personalidadeDetailsModal');
-            const modalPersonalidadeNome = document.getElementById('modal-personalidade-nome');
-            const modalPersonalidadeDetailsBody = document.getElementById('modal-personalidade-details-body');
-
-            modalPersonalidadeNome.textContent = 'Carregando...';
-            modalPersonalidadeDetailsBody.innerHTML = '<p>Buscando informações da personalidade...</p>';
-            modalOverlay.classList.add('active');
-
-            try {
-                // Fetch de um item específico por ID. O endpoint retorna {"data": [item]}
-                const response = await fetch(`http://127.0.0.1:5000/api/personalidades?id=${personalidadeId}`);
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('Personalidade não encontrada.');
-                    }
-                    throw new Error(`Erro HTTP! Status: ${response.status}`);
-                }
-                const responseData = await response.json();
-                const personalidade = responseData.data[0]; // Acessa o primeiro item do array 'data'
-
-                if (!personalidade) {
-                    throw new Error('Personalidade não encontrada.');
-                }
-
-                modalPersonalidadeNome.textContent = personalidade.NOME_PERSONALIDADE || 'Personalidade Desconhecida';
-                modalPersonalidadeDetailsBody.innerHTML = '';
-
-                const modalDetailsColumns = [
-                    'NOME',
-                    'CAMPO_INFO_PERSONALIDADE'
-                ];
-
-                const friendlyLabels = {
-                    'CAMPO_INFO_PERSONALIDADE': 'Informações adicionais: '
-                };
-
-                modalDetailsColumns.forEach(colName => {
-                    let value = personalidade[colName] || 'N/A';
-
-                    // Adicione formatações específicas se necessário (ex: para datas já formatadas)
-
-                    const detailItem = document.createElement('div');
-                    detailItem.classList.add('modal-detail-item');
-                    detailItem.innerHTML = `<strong>${friendlyLabels[colName] || colName.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}</strong> <span>${value}</span>`;
-                    modalPersonalidadeDetailsBody.appendChild(detailItem);
-                });
-
-                // Lógica para relações (se tiver)
-            } catch (error) {
-                console.error('Erro ao carregar detalhes da personalidade no modal:', error);
-                modalPersonalidadeNome.textContent = 'Erro';
-                modalPersonalidadeDetailsBody.innerHTML = `<p style="color: #dc3545;">${error.message || 'Não foi possível carregar os detalhes da personalidade.'}</p>`;
-            }
-        }
     </script>
 </body>
 </html>

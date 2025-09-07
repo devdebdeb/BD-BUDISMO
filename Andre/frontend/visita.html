@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Visitas Registradas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos copiados de associacoes.html para consistência */
+    :root {
+      --primary-color: #499a6e;
+      --secondary-color: #3a7a5a;
+      --bg-light: #f8f9fa;
+      --text-dark: #333;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--bg-light);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 20px;
+    }
+    .tabela-container {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    tr:hover {
+      background: #f1f1f1;
+    }
+    .detalhes-btn {
+      background: var(--primary-color);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 16px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.3s;
+    }
+    .detalhes-btn:hover {
+      background: var(--secondary-color);
+    }
+  </style>
+</head>
+<body>
+    <div class="container">
+      <h1>Visitas Registradas</h1>
+      <div class="tabela-container">
+        <table id="tabela-visitas">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Data da Visita</th>
+              <th>Descrição</th>
+              <th>Detalhes</th>
+            </tr>
+          </thead>
+          <tbody id="visitas-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      async function carregarVisitas() {
+        try {
+          // Endpoint para buscar todas as visitas
+          const resposta = await fetch("http://localhost:5000/api/visitas?all=true");
+          if (!resposta.ok) throw new Error("Erro ao carregar visitas");
+          const dados = await resposta.json();
+          exibirVisitas(dados.data);
+        } catch (erro) {
+          console.error(erro);
+          const tbody = document.getElementById("visitas-body");
+          tbody.innerHTML = "<tr><td colspan='4'>Não foi possível carregar as visitas.</td></tr>";
+        }
+      }
+  
+      function exibirVisitas(visitas) {
+        const tbody = document.getElementById("visitas-body");
+        tbody.innerHTML = "";
+        
+        if (!visitas || visitas.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='4'>Nenhuma visita encontrada</td></tr>";
+          return;
+        }
+  
+        // Ordena as visitas pela data mais recente primeiro
+        visitas.sort((a, b) => new Date(b.DATA_VISITA) - new Date(a.DATA_VISITA));
+
+        visitas.forEach(visita => {
+          // Formata a data para o padrão local (ex: dd/mm/aaaa)
+          const dataFormatada = visita.DATA_VISITA ? new Date(visita.DATA_VISITA).toLocaleDateString('pt-BR') : 'N/A';
+          
+          tbody.innerHTML += `
+            <tr>
+              <td>${visita.ID_VISITA || ""}</td>
+              <td>${dataFormatada}</td>
+              <td>${visita.CAMPO_INFO_VISITA || "Sem descrição"}</td>
+              <td>
+                <a class="detalhes-btn" href="detalhes.html?id=${visita.ID_VISITA}&type=visita">Ver mais</a>
+              </td>
+            </tr>
+          `;
+        });
+      }
+  
+      window.onload = carregarVisitas;
+    </script>
+  </body>
+  </html>

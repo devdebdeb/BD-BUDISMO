@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes - Budismo na América Latina</title>
+    
+    <link rel="stylesheet" href="../style.css"> 
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css" rel="stylesheet">
+
+    <style>
+        /* Header de Detalhes */
+        .detail-header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, var(--azul-principal), var(--azul-hover));
+            color: #fff;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .detail-header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+            color: #fff; /* Garante que o H1 do header de detalhes seja branco */
+        }
+        .detail-header .type-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 7px 18px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .profile-image-header {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #fff;
+            margin-top: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Grid de Detalhes */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .detail-item {
+            background-color: var(--cor-fundo);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda);
+        }
+        .detail-item strong {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--texto-secundario);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .detail-item span {
+            font-size: 1.1rem;
+            color: var(--texto-principal);
+        }
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+        .detail-item.full-width pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Galeria e Relações */
+        .gallery-grid, .related-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .gallery-card {
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--sombra-suave);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .gallery-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .gallery-card img { width: 100%; height: 200px; object-fit: cover; }
+        .gallery-card .caption { padding: 12px; font-size: 0.95rem; color: var(--texto-secundario); text-align: center; }
+        
+        .related-card {
+            background: var(--cor-superficie);
+            border-radius: 8px;
+            box-shadow: var(--sombra-suave);
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            gap: 15px;
+            border: 1px solid var(--cor-borda);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .related-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0,0,0,0.12); }
+        .related-image { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+        .related-image.placeholder { background-color: var(--cor-fundo); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--texto-secundario); font-weight: 500; }
+        .related-content h3 { font-size: 1.2rem; margin-bottom: 5px; color: var(--texto-principal); }
+        .related-content p { font-size: 0.95rem; color: var(--texto-secundario); margin-bottom: 10px; }
+        
+        /* Lightbox */
+        .lb-data .lb-caption { font-size: 1rem !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><a href="../default.html" style="text-decoration: none;">Budismo na América Latina</a></h1>
+        <nav>
+            <ul>
+                <li><a href="../default.html">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html">Personalidades</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="Visualização/visualizacaobi.html">Visualizações Power BI</a></li>
+                <li><a href="../Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="detail-header" id="detail-header">
+                <h1 id="detail-title">Carregando...</h1>
+                <span class="type-badge" id="detail-type"></span>
+                </div>
+
+            <section class="content-section" id="detail-content-section">
+                <h2 id="main-details-title">Detalhes Principais</h2>
+                <div id="detail-content" class="detail-grid">
+                    </div>
+            </section>
+
+            <section class="content-section" id="carousel-section" style="display: none;">
+                <h2>Galeria de Imagens</h2>
+                <div class="gallery-grid" id="carousel-grid">
+                    </div>
+            </section>
+
+            <section class="content-section" id="related-section" style="display: none;">
+                <h2>Relações</h2>
+                <div class="related-grid" id="related-grid">
+                    </div>
+            </section>
+
+            <div id="loading" class="loading">
+                <div class="spinner" style="border-top-color: var(--azul-principal);"></div>
+                <p>Carregando informações...</p>
+            </div>
+            <div id="error-container" class="error-message" style="display: none;">
+                <p id="error-message-text"></p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="../brasao_puc.png" alt="Brasão PUC" style="height: 35px;">
+                <img src="../cnpq.png" alt="CNPq" style="height: 35px;">
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+
+    <script>
+        const baseUrl = 'http://127.0.0.1:5000'; 
+
+        function getItemName(item) {
+            return item.NOME || item.NOME_PERSONALIDADE || item.NOME_ASSOCIACAO || item.NOME_PRODUTO;
+        }
+
+        async function loadDetails() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const type = params.get('type');
+            if (!id || !type) {
+                showError("ID ou tipo de entidade não especificado na URL.");
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+
+            const endpointMap = {
+                templo: 'templos', personalidade: 'personalidades',
+                associacao: 'associacoes', produto: 'produtos', visita: 'visitas'
+            };
+            const endpoint = endpointMap[type];
+
+            try {
+                const [resItem, resRelations] = await Promise.all([
+                    fetch(`${baseUrl}/api/${endpoint}?id=${id}`),
+                    fetch(`${baseUrl}/api/relations/${type}/${id}`)
+                ]);
+
+                if (!resItem.ok) {
+                    throw new Error(`Item não encontrado (status: ${resItem.status}).`);
+                }
+                const dataItem = await resItem.json();
+                if (!dataItem || !dataItem.data || dataItem.data.length === 0) {
+                    throw new Error('Nenhum dado encontrado para este item.');
+                }
+
+                const item = dataItem.data[0];
+                document.title = `${getItemName(item) || 'Detalhes'} - Budismo na América Latina`;
+                renderDetails(item, type);
+
+                if (resRelations.ok) {
+                    const relations = await resRelations.json();
+                    renderCarousel(relations.imagens_carrossel, item);
+                    renderRelations(relations);
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function renderDetails(item, type) {
+            const header = document.getElementById('detail-header');
+            const contentDiv = document.getElementById('detail-content');
+            const nome = getItemName(item);
+            document.getElementById('detail-title').textContent = nome || "Detalhes";
+            document.getElementById('detail-type').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            document.getElementById('main-details-title').textContent = `Detalhes sobre ${nome || type}`;
+
+            const oldImg = header.querySelector('.profile-image-header');
+            if (oldImg) oldImg.remove();
+            
+            if (item.IMAGEM_PERFIL_URL) {
+                const img = document.createElement('img');
+                img.src = `${baseUrl}${item.IMAGEM_PERFIL_URL}`;
+                img.alt = `Imagem de ${nome}`;
+                img.className = 'profile-image-header';
+                header.appendChild(img);
+            }
+
+            let html = '';
+            const criarDetalheItem = (label, value, isFullWidth = false) => {
+                if (!value || value === 'N/A' || value === '0001-01-01T00:00:00') return '';
+                let displayValue = value;
+                if (String(label).toLowerCase().includes('data') && value) {
+                    displayValue = new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                }
+                const fullWidthClass = isFullWidth ? 'full-width' : '';
+                const valueHtml = isFullWidth ? `<pre>${displayValue}</pre>` : displayValue;
+
+                return `<div class="detail-item ${fullWidthClass}"><strong>${label}</strong><span>${valueHtml}</span></div>`;
+            };
+
+            if (type === 'templo') {
+                html += criarDetalheItem('País', item.PAIS);
+                html += criarDetalheItem('Localização', [item.MUNICIPIO, item.ESTADO].filter(Boolean).join(', '));
+                html += criarDetalheItem('Escola / Tradição', item.ESCOLA);
+                html += criarDetalheItem('Veículo', item.VEICULO);
+                html += criarDetalheItem('Público-Alvo', item.PUBLICO_ALVO === '1' ? 'Étnico' : 'Conversão');
+                html += criarDetalheItem('Data de Abertura', item.DATA_ABERTURA_TEMPLO);
+                html += criarDetalheItem('Data de Fechamento', item.DATA_FECHAMENTO_TEMPLO);
+                html += criarDetalheItem('Data da última checagem', item.DATA_ULTIMA_CHECAGEM);
+                html += criarDetalheItem('Informações', item.CAMPO_INFO_TEMPLO, true);
+
+            } else if (type === 'personalidade') {
+              html += criarDetalheItem('País de Origem', item.PAIS_ORIGEM_PERSONALIDADE);
+              html += criarDetalheItem('Nível / Título', item.NIVEL);
+              html += criarDetalheItem('Gênero', item.GENERO);
+              html += criarDetalheItem('Raça', item.RACA); 
+              html += criarDetalheItem('Data de Nascimento', item.DATA_NASCIMENTO);
+              html += criarDetalheItem('Data de Morte', item.DATA_MORTE);
+              html += criarDetalheItem('Data da Última Checagem', item.DATA_ULTIMA_CHECAGEM);
+              html += criarDetalheItem('Biografia', item.CAMPO_INFO_PERSONALIDADE, true);
+
+
+              } else if (type === 'associacao') {
+              html += criarDetalheItem('Grau', item.GRAU);
+              html += criarDetalheItem('País de Atuação', item.PAIS_ATUACAO);
+              html += criarDetalheItem('Sede', item.SEDE_ASSOCIACAO); 
+              html += criarDetalheItem('Data de Abertura', item.DATA_ABERTURA_ASSOCIACAO);
+              html += criarDetalheItem('Data de Fechamento', item.DATA_FECHAMENTO_ASSOCIACAO);
+              html += criarDetalheItem('Data da Última Checagem', item.DATA_ULTIMA_CHECAGEM); 
+              html += criarDetalheItem('Informações', item.CAMPO_INFO_ASSOCIACAO, true);
+
+              } else if (type === 'produto') {
+              html += criarDetalheItem('Tipo', item.TIPO_PRODUTO);
+              html += criarDetalheItem('Data de Lançamento', item.DATA_LANCAMENTO);
+              html += criarDetalheItem('Descrição', item.CAMPO_INFO_PRODUTO, true);
+              html += criarDetalheItem('Data da Última Checagem', item.DATA_ULTIMA_CHECAGEM);
+          
+              } else if (type === 'visita') {
+              html += criarDetalheItem('Data da Visita', item.DATA_VISITA);
+              html += criarDetalheItem('País', item.PAIS);
+              html += criarDetalheItem('Informações', item.CAMPO_INFO_VISITA, true);
+            }
+            contentDiv.innerHTML = html;
+        }
+
+        function renderCarousel(imagens, item) {
+            if (!imagens || imagens.length === 0) return;
+            const carouselSection = document.getElementById('carousel-section');
+            const carouselGrid = document.getElementById('carousel-grid');
+            carouselGrid.innerHTML = '';
+            imagens.forEach(img => {
+                carouselGrid.innerHTML += `
+                    <div class="gallery-card">
+                        <a href="${baseUrl}${img.URL_IMAGEM}" data-lightbox="gallery" data-title="${img.LEGENDA || getItemName(item)}">
+                            <img src="${baseUrl}${img.URL_IMAGEM}" alt="${img.LEGENDA || 'Imagem da galeria'}">
+                        </a>
+                        <p class="caption">${img.LEGENDA || 'Sem legenda'}</p>
+                    </div>`;
+            });
+            carouselSection.style.display = 'block';
+        }
+
+        function renderRelations(relations) {
+            const relatedGrid = document.getElementById('related-grid');
+            relatedGrid.innerHTML = '';
+            let hasRelations = false;
+            Object.keys(relations).forEach(relType => {
+                if (relType === 'imagens_carrossel' || !relations[relType] || relations[relType].length === 0) return;
+                
+                hasRelations = true;
+                const items = relations[relType];
+                const typeMap = {
+                    templos: 'templo', personalidades: 'personalidade',
+                    associacoes: 'associacao', produtos: 'produto', visitas: 'visita'
+                };
+                const targetType = typeMap[relType];
+                if (!targetType) return; 
+
+                items.forEach(item => {
+                    const id = item.ID_TEMPLO || item.ID_PERSONALIDADE || item.ID_ASSOCIACAO || item.ID_PRODUTO || item.ID_VISITA;
+                    let nome = getItemName(item);
+                    const imagemUrl = item.IMAGEM_PERFIL_URL;
+                    let subtitulo = targetType.charAt(0).toUpperCase() + targetType.slice(1);
+                    
+                    if(targetType === 'visita'){
+                        nome = `Visita em ${new Date(item.DATA_VISITA).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`;
+                        subtitulo = item.CAMPO_INFO_VISITA ? item.CAMPO_INFO_VISITA.substring(0, 70) + '...' : 'Visita registrada';
+                    } else if (item.FUNCAO) {
+                        subtitulo += ` (${item.FUNCAO})`;
+                    }
+                    
+                    const imagemHtml = imagemUrl
+                        ? `<img src="${baseUrl}${imagemUrl}" alt="Imagem de ${nome}" class="related-image">`
+                        : `<div class="related-image placeholder">${(nome || '?').charAt(0)}</div>`;
+
+                    relatedGrid.innerHTML += `
+                        <div class="related-card">
+                            <a href="detalhes.html?id=${id}&type=${targetType}" class="related-image-link">
+                                ${imagemHtml}
+                            </a>
+                            <div class="related-content">
+                                <h3>${nome}</h3>
+                                <p>${subtitulo}</p>
+                                <a class="btn btn-secondary btn-sm" href="detalhes.html?id=${id}&type=${targetType}">Ver detalhes <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                        </div>`;
+                });
+            });
+            if (hasRelations) {
+                document.getElementById('related-section').style.display = 'block';
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error-container');
+            const errorTextEl = document.getElementById('error-message-text');
+            errorTextEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        window.onload = loadDetails;
+    </script>
+</body>
+</html>S

@@ -3,124 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Início</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Estilos específicos para a página inicial */
-        .hero-section {
-            padding: 80px 20px;
-            background: linear-gradient(to right, #4a7d8d, #6a929d);
-            color: white;
-            text-align: center;
-            border-radius: 12px;
-            margin-bottom: 40px;
-        }
+    <title>Início - Banco de Dados do Budismo</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
 
-        .hero-section h2 {
-            font-size: 3.5em;
-            margin-bottom: 20px;
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .hero-section p {
-            font-size: 1.5em;
-            max-width: 900px;
-            margin: 0 auto 40px auto;
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-
-        .action-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .action-buttons .btn {
-            background-color: #f7f7f7;
-            color: #2c3e50;
-            padding: 15px 30px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-size: 1.1em;
-            font-weight: 700;
-            transition: all 0.3s ease;
-            border: 2px solid #f7f7f7;
-        }
-
-        .action-buttons .btn:hover {
-            background-color: transparent;
-            color: #f7f7f7;
-            border-color: #f7f7f7;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        @media (max-width: 768px) {
-            .hero-section {
-                padding: 60px 15px;
-            }
-            .hero-section h2 {
-                font-size: 2.5em;
-            }
-            .hero-section p {
-                font-size: 1.2em;
-            }
-            .action-buttons {
-                flex-direction: column;
-                gap: 15px;
-            }
-            .action-buttons .btn {
-                width: 80%;
-                max-width: 300px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
     <header>
-        <h1>Budismo</h1>
-<nav>
-    <ul>
-        <li><a href="default.html">Início</a></li>
-        <li><a href="templos.html">Templos</a></li>
-        <li><a href="associacoes.html">Associações</a></li>
-        <li><a href="personalidades.html">Personalidades</a></li>
-        <li><a href="produtos.html">Produtos</a></li>
-        <li><a href="visualizacao.html">Visualizações Power BI</a></li>
-        <li><a href="mapa_visualizacao.html">Visualizações do Mapa</a></li>
-        
-        <li><a href="../Administração/login.html" class="login-btn">Login</a></li>
-    </ul>
-</nav>
+        <h1>Budismo na América Latina</h1>
+        <nav>
+            <ul>
+                <li><a href="default.html">Início</a></li>
+                <li><a href="Visualização/templos.html">Templos</a></li>
+                <li><a href="Visualização/associacoes.html">Associações</a></li>
+                <li><a href="Visualização/personalidades.html">Personalidades</a></li>
+                <li><a href="Visualização/produtos.html">Produtos</a></li>
+                <li><a href="Visualização/visualizacaobi.html">Visualizações Power BI</a></li>
+                <li><a href="Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
-        <section class="content-section hero-section">
-            <h2>Bem-vindo ao Banco de Dados do Budismo</h2>
-            <p>Explore a rica tapeçaria do budismo na América Latina e Caribe através de nosso vasto catálogo de templos, associações, personalidades e produtos.</p>
-            <div class="action-buttons">
-                <a href="notas_metodologicas.pdf" class="btn" target="_blank">Notas Metodológicas</a>
-                <a href="manual_de_uso.pdf" class="btn" target="_blank">Manual de Uso</a>
-                <a href="como_nos_citar.pdf" class="btn" target="_blank">Como Nos Citar (ABNT)</a>
-            </div>
-        </section>
+        <div class="container">
+            <section class="hero-section">
+                <h2>Explore o Universo do Budismo</h2>
+                <p class="subtitle">Navegue pelas seções para explorar nosso vasto catálogo de templos, associações, personalidades e produtos.</p>
 
-        <section class="content-section">
-            <h2>Nosso Objetivo</h2>
-            <p>Nosso projeto visa compilar e disponibilizar informações detalhadas sobre a presença e o desenvolvimento do budismo em diversas nações, oferecendo um recurso valioso para pesquisadores, praticantes e entusiastas.</p>
-            <p>Navegue pelas diferentes seções do site para acessar dados geográficos, históricos e contextuais, ou explore as visualizações interativas para descobrir padrões e tendências.</p>
-        </section>
+                <div class="action-buttons">
+                    <a href="notas_metodologicas.pdf" class="btn btn-secondary" target="_blank">Notas Metodológicas</a>
+                    <a href="manual_de_uso.pdf" class="btn btn-secondary" target="_blank">Manual de Uso</a>
+                    <a href="como_nos_citar.pdf" class="btn btn-secondary" target="_blank">Como Nos Citar</a>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>Nosso Acervo em Números</h2>
+                <div class="total-counts">
+                    <div class="count-item">
+                        Templos
+                        <strong><span id="totalCounterTemplo">...</span></strong>
+                    </div>
+                    <div class="count-item">
+                        Associações
+                        <strong><span id="totalCounterAssociacao">...</span></strong>
+                    </div>
+                    <div class="count-item">
+                        Personalidades
+                        <strong><span id="totalCounterPersonalidade">...</span></strong>
+                    </div>
+                    <div class="count-item">
+                        Produtos
+                        <strong><span id="totalCounterProduto">...</span></strong>
+                    </div>
+                </div>
+            </section>
+        </div>
     </main>
 
     <footer>
-        <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
-        <img src="brasao_puc.png" alt="Brasão PUC">
-        <img src="cnpq.png" alt="CNPq">
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="brasao_puc.png" alt="Brasão PUC">
+                <img src="cnpq.png" alt="CNPq">
+            </div>
+        </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Script para os contadores ---
+            const counters = {
+                templo: document.getElementById('totalCounterTemplo'),
+                associacao: document.getElementById('totalCounterAssociacao'),
+                personalidade: document.getElementById('totalCounterPersonalidade'),
+                produto: document.getElementById('totalCounterProduto'),
+            };
+
+            const apiBaseUrl = 'http://127.0.0.1:5000/api';
+
+            async function fetchTotals() {
+                try {
+                    const responses = await Promise.all([
+                        fetch(`${apiBaseUrl}/templos/total`),
+                        fetch(`${apiBaseUrl}/associacoes/total`),
+                        fetch(`${apiBaseUrl}/personalidades/total`),
+                        fetch(`${apiBaseUrl}/produtos/total`)
+                    ]);
+                    const data = await Promise.all(responses.map(res => res.json()));
+                    counters.templo.textContent = data[0].total;
+                    counters.associacao.textContent = data[1].total;
+                    counters.personalidade.textContent = data[2].total;
+                    counters.produto.textContent = data[3].total;
+                } catch (error) {
+                    console.error('Erro ao buscar totais:', error);
+                    Object.values(counters).forEach(span => span.textContent = '0');
+                }
+            }
+
+            fetchTotals();
+
+            // --- LÓGICA PARA MARCAR LINK ATIVO ---
+            const currentPagePath = window.location.pathname;
+            const navLinks = document.querySelectorAll('nav ul li a');
+
+            navLinks.forEach(link => {
+                const linkPath = new URL(link.href).pathname;
+                // Trata o caso da página inicial ser a raiz "/"
+                if (currentPagePath === linkPath || (currentPagePath === '/' && linkPath.endsWith('/default.html'))) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
