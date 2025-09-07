@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Moderador</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f4f6f8; padding: 30px; }
+    h1, h2 { color: #499a6e; }
+    h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px;}
+    .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .secao { margin-top: 30px; }
+    button { padding: 10px 20px; margin: 5px; background: #499a6e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .button-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .stats-card { background-color: #f9f9f9; border: 1px solid #e9e9e9; border-radius: 8px; padding: 20px; margin-top: 15px; }
+    .stats-card p { margin: 8px 0; font-size: 1.1rem; color: #333; }
+    .stats-card strong { color: #499a6e; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Painel do Moderador</h1>
+    <p style="text-align:center; color: #555;">Bem-vindo(a), utilize as ferramentas abaixo para gerenciar o conteúdo do site.</p>
+
+    <div class="secao">
+        <h2>Estatísticas do Sistema</h2>
+        <div class="stats-grid">
+            <div id="uploads-stats" class="stats-card">
+                <p>Calculando estatísticas de uploads...</p>
+            </div>
+            <div id="db-stats" class="stats-card">
+                <p>Calculando estatísticas do banco de dados...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="secao">
+      <h2>Gerenciar Dados do Site</h2>
+      <div class="button-group">
+        <button onclick="location.href='../Criação/criador.html'">Criar Entidades</button>
+        <button onclick="location.href='../Edição/editor.html'">Gerenciar Entidades</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    // Acesso permitido para 'moderador' E 'admin'
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+
+    // --- ADICIONADO: Variável para a URL base da API ---
+    // Deixe vazio ('') para o site online ou 'http://localhost:5000' para testes locais.
+    const baseUrl = 'http://localhost:5000';
+
+    // Função para buscar estatísticas de UPLOADS
+    async function carregarUploadStats() {
+        const statsContainer = document.getElementById('uploads-stats');
+        try {
+            // --- ATUALIZADO: Usando a variável baseUrl ---
+            const res = await fetch(`${baseUrl}/api/stats/uploads`);
+            const data = await res.json();
+            if (res.ok) {
+                statsContainer.innerHTML = `
+                    <p><strong>Espaço em Disco (Uploads)</strong></p>
+                    <p><strong>Total:</strong> ${data.total_size_str || 'N/A'}</p>
+                    <p><strong>Arquivos:</strong> ${data.file_count || 0}</p>
+                `;
+            } else {
+                statsContainer.innerHTML = `<p style="color: red;">Erro ao carregar stats de uploads.</p>`;
+            }
+        } catch (error) {
+            statsContainer.innerHTML = `<p style="color: red;">Falha de conexão (uploads).</p>`;
+        }
+    }
+
+    // Função para buscar estatísticas do BANCO DE DADOS
+    async function carregarDbStats() {
+        const statsContainer = document.getElementById('db-stats');
+        try {
+            // --- ATUALIZADO: Usando a variável baseUrl ---
+            const res = await fetch(`${baseUrl}/api/stats/database`);
+            const data = await res.json();
+            if (res.ok) {
+                statsContainer.innerHTML = `
+                    <p><strong>Espaço em Disco (BD)</strong></p>
+                    <p><strong>Tamanho Total:</strong> ${data.db_size_str || 'N/A'}</p>
+                `;
+            } else {
+                statsContainer.innerHTML = `<p style="color: red;">Erro ao carregar stats do BD.</p>`;
+            }
+        } catch (error) {
+            statsContainer.innerHTML = `<p style="color: red;">Falha de conexão (BD).</p>`;
+        }
+    }
+
+    // Chama as duas funções de estatísticas quando a página carregar
+    window.onload = () => {
+        carregarUploadStats();
+        carregarDbStats();
+    };
+  </script>
+</body>
+</html>

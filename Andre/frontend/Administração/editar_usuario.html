@@ -1,0 +1,74 @@
+<!-- editar_usuario.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Moderador</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f0f2f5; padding: 30px; }
+    .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #499a6e; margin-bottom: 20px; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; }
+    button:hover { background: #3a7a5a; }
+    .success, .error { text-align: center; margin-top: 10px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Editar Moderador</h2>
+    <input type="text" id="nome" placeholder="Novo nome (opcional)" />
+    <input type="password" id="senha" placeholder="Nova senha (opcional)" />
+    <button onclick="atualizarUsuario()">Salvar alterações</button>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const dados = JSON.parse(localStorage.getItem("usuario_edicao"));
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || usuario.tipo !== "admin") {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+    if (!dados || !dados.id) {
+      alert("Usuário inválido para edição.");
+      window.location.href = "admin.html";
+    }
+
+    async function atualizarUsuario() {
+      const nome = document.getElementById("nome").value.trim();
+      const senha = document.getElementById("senha").value.trim();
+      const mensagem = document.getElementById("mensagem");
+      mensagem.textContent = "";
+
+      if (!nome && !senha) {
+        mensagem.textContent = "Preencha pelo menos um campo.";
+        mensagem.className = "error";
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/usuarios/${dados.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome, senha })
+        });
+
+        const dadosRes = await res.json();
+        if (!res.ok) {
+          mensagem.textContent = dadosRes.error || "Erro ao atualizar usuário.";
+          mensagem.className = "error";
+        } else {
+          mensagem.textContent = "Usuário atualizado com sucesso!";
+          mensagem.className = "success";
+        }
+      } catch (erro) {
+        mensagem.textContent = "Erro de rede.";
+        mensagem.className = "error";
+      }
+    }
+  </script>
+</body>
+</html>

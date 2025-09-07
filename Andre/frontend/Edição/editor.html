@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Edição</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos base para a página - Idênticos ao criador.html */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    /* Estilo principal do container */
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    /* Estilo do título principal */
+    h2 {
+      color: #499a6e;
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-size: 2rem;
+    }
+
+    /* Grid para organizar os botões de forma responsiva */
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* Duas colunas em telas maiores */
+      gap: 20px;
+    }
+
+    /* Estilo dos botões de navegação */
+    .btn {
+      display: block;
+      background-color: #499a6e;
+      color: white;
+      padding: 15px 20px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #3a7a5a; /* Tom mais escuro ao passar o mouse */
+      transform: translateY(-2px); /* Efeito de elevação */
+    }
+
+    /* Ajuste para telas menores (celulares) */
+    @media (max-width: 600px) {
+      .button-grid {
+        grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
+      }
+      .container {
+        padding: 20px;
+      }
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+      alert("Acesso negado. Redirecionando para login.");
+      // Ajuste o caminho se sua página de login estiver em outro lugar
+      window.location.href = "../Administração/login.html";
+    }
+  </script>
+
+  <div class="container">
+    <h2>Painel de Edição</h2>
+    <p style="color: #555; margin-bottom: 40px;">Selecione o tipo de item que você deseja editar, apagar ou gerenciar relações.</p>
+    <div class="button-grid">
+      <a href="editar_templo.html" class="btn">Gerenciar Templos</a>
+      <a href="editar_personalidade.html" class="btn">Gerenciar Personalidades</a>
+      <a href="editar_associação.html" class="btn">Gerenciar Associações</a>
+      <a href="editar_produto.html" class="btn">Gerenciar Produtos</a>
+      <a href="editar_visita.html" class="btn">Gerenciar Visitas</a>
+    </div>
+  </div>
+
+</body>
+</html>

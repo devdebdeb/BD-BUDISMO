@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciar Templos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 30px; }
+    .container { max-width: 800px; margin: 20px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    h2 { text-align: center; color: #499a6e; margin-top: 0; margin-bottom: 30px; font-size: 2rem; }
+    h3 { color: #3a7a5a; border-top: 1px solid #eee; padding-top: 25px; margin-top: 30px; text-align: center; font-size: 1.5rem; }
+    h4 { font-size: 1.1rem; margin-top: 0; margin-bottom: 8px; color: #499a6e; }
+    input, textarea, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: 500; font-size: 1.1rem; transition: background-color 0.3s ease; margin-top: 10px; }
+    button:hover { background: #3a7a5a; }
+    label { font-weight: 500; color: #333; font-size: 0.9rem; display: block; text-align: left; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .full-width { grid-column: 1 / -1; }
+    .form-field { margin-bottom: 10px; text-align: left; }
+    .image-section, .related-card { margin-top: 20px; }
+    .profile-image-preview { max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #eee; display: block; margin: 10px auto; object-fit: cover; }
+    .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    .carousel-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; text-align: center; }
+    .carousel-card img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; }
+    .carousel-card button { background-color: #d9534f; font-size: 0.8rem; padding: 5px 10px; margin-top: 5px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 10px;}
+    .inline-group { display: flex; gap: 10px; align-items: flex-end; }
+    .inline-group > * { flex: 1; }
+    .success, .error { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    
+    /* --- NOVOS ESTILOS PARA OS CARDS DE RELAÇÃO --- */
+    .related-card {
+        background: #fafafa; border-radius: 8px; border: 1px solid #eee; padding: 15px;
+        display: flex;       /* Alinha a imagem e o texto lado a lado */
+        align-items: center;  /* Centraliza verticalmente */
+        gap: 15px;            /* Espaço entre a imagem e o texto */
+    }
+    .related-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;   /* Deixa a imagem redonda */
+        object-fit: cover;    /* Garante que a imagem preencha o círculo */
+        border: 2px solid #ddd;
+        flex-shrink: 0;       /* Impede que a imagem encolha */
+    }
+    .related-content {
+        flex-grow: 1;         /* Faz o conteúdo de texto ocupar o espaço restante */
+    }
+    .related-content p {
+        margin: 5px 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .container { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerenciar Templos</h2>
+    <div class="form-field full-width">
+      <label for="entidadeSelect">Selecione um templo para editar ou apagar</label>
+      <select id="entidadeSelect" onchange="carregarEntidade()">
+        <option value="">Selecione um templo</option>
+      </select>
+    </div>
+    
+    <div id="conteudo-edicao" style="display:none;">
+      <h3>Dados Principais</h3>
+      <div class="form-grid">
+        <div class="form-field full-width"><label for="edit_nome">Nome do Templo</label><input type="text" id="edit_nome"/></div>
+        <div class="form-field"><label for="edit_pais">País</label><input type="text" id="edit_pais"/></div>
+        <div class="form-field"><label for="edit_estado">Estado</label><input type="text" id="edit_estado"/></div>
+        <div class="form-field"><label for="edit_municipio">Município</label><input type="text" id="edit_municipio"/></div>
+        <div class="form-field"><label for="edit_codigo_postal">Código Postal</label><input type="text" id="edit_codigo_postal"/></div>
+        <div class="form-field"><label for="edit_escola">Escola / Tradição</label><input type="text" id="edit_escola"/></div>
+        <div class="form-field"><label for="edit_veiculo">Veículo (ex: Mahayana)</label><input type="text" id="edit_veiculo"/></div>
+        <div class="form-field full-width"><label for="edit_publico_alvo">Público-Alvo</label><select id="edit_publico_alvo"><option value="">Selecione</option><option value="1">Étnico</option><option value="0">Conversão</option></select></div>
+        <div class="form-field"><label for="edit_data_abertura_templo">Data de Abertura</label><input type="date" id="edit_data_abertura_templo"/></div>
+        <div class="form-field"><label for="edit_data_fechamento_templo">Data de Fechamento</label><input type="date" id="edit_data_fechamento_templo"/></div>
+        <div class="form-field full-width"><label for="edit_campo_info_templo">Informações Adicionais</label><textarea id="edit_campo_info_templo"></textarea></div>
+      </div>
+      <button onclick="atualizarEntidade()">Atualizar Dados do Templo</button>
+      
+      <div class="image-section">
+        <h3>Imagem de Perfil</h3>
+        <img id="imagem_perfil_preview" src="https://via.placeholder.com/200x200.png?text=Sem+Imagem" alt="Imagem de Perfil" class="profile-image-preview">
+        <label for="upload_imagem_perfil">Enviar nova imagem de perfil:</label>
+        <input type="file" id="upload_imagem_perfil">
+        <button onclick="atualizarImagemPerfil()">Salvar Imagem de Perfil</button>
+      </div>
+
+      <div class="image-section">
+        <h3>Carrossel de Imagens</h3>
+        <div id="carrossel_grid" class="carousel-grid"></div>
+        <h4>Adicionar Nova Imagem ao Carrossel</h4>
+        <label for="upload_imagem_carrossel">Selecione a imagem:</label>
+        <input type="file" id="upload_imagem_carrossel">
+        <label for="legenda_imagem_carrossel">Digite uma legenda:</label>
+        <input type="text" id="legenda_imagem_carrossel" placeholder="Legenda da imagem (opcional)">
+        <button onclick="adicionarImagemCarrossel()">Adicionar Imagem ao Carrossel</button>
+      </div>
+
+      <h3>Relações</h3>
+      <div class="related-card">
+        <h4>Personalidades Associadas</h4>
+        <div id="personalidades" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_personalidade"><option>Carregando...</option></select>
+            <input type="text" id="funcao_personalidade" placeholder="Função (ex: Fundador)" />
+            <button onclick="buscarAdicionar('personalidade')">Adicionar</button>
+        </div>
+      </div>
+      <div class="related-card" style="margin-top: 20px;">
+        <h4>Associações Vinculadas</h4>
+        <div id="associacoes" class="related-grid"></div>
+        <div class="inline-group">
+            <select id="busca_associacao"><option>Carregando...</option></select>
+            <button onclick="buscarAdicionar('associacao')">Adicionar</button>
+        </div>
+      </div>
+
+      <button onclick="deletarEntidade()" style="background-color:#d9534f; margin-top: 30px;">Apagar Templo Permanentemente</button>
+    </div>
+    
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || (usuario.tipo !== "moderador" && usuario.tipo !== "admin")) {
+        alert("Acesso negado. Redirecionando para login.");
+        window.location.href = "../Administração/login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+    let entidades = [], personalidades = [], associacoes = [];
+    let entidade_id = null;
+
+    async function carregarTudo() {
+      try {
+        const [resEntidades, resPersonalidades, resAssociacoes] = await Promise.all([
+          fetch(`${baseUrl}/api/templos?all=true`),
+          fetch(`${baseUrl}/api/personalidades?all=true`),
+          fetch(`${baseUrl}/api/associacoes?all=true`)
+        ]);
+        entidades = (await resEntidades.json()).data || [];
+        personalidades = (await resPersonalidades.json()).data || [];
+        associacoes = (await resAssociacoes.json()).data || [];
+
+        const select = document.getElementById("entidadeSelect");
+        select.innerHTML = '<option value="">Selecione um templo</option>';
+        entidades.forEach(e => { select.innerHTML += `<option value="${e.ID_TEMPLO}">${e.NOME} (ID: ${e.ID_TEMPLO})</option>`; });
+        
+        const selectP = document.getElementById("busca_personalidade");
+        selectP.innerHTML = '<option value="">Selecione uma personalidade</option>';
+        personalidades.forEach(p => { selectP.innerHTML += `<option value="${p.ID_PERSONALIDADE}">${p.NOME_PERSONALIDADE}</option>`; });
+        
+        const selectA = document.getElementById("busca_associacao");
+        selectA.innerHTML = '<option value="">Selecione uma associação</option>';
+        associacoes.forEach(a => { selectA.innerHTML += `<option value="${a.ID_ASSOCIACAO}">${a.NOME_ASSOCIACAO}</option>`; });
+      } catch (err) { exibirMensagem({ error: "Falha ao carregar dados iniciais." }); }
+    }
+
+    function limparFormulario() {
+      document.getElementById('conteudo-edicao').style.display = 'none';
+      document.getElementById('entidadeSelect').value = '';
+      const fields = ['edit_nome', 'edit_pais', 'edit_estado', 'edit_municipio', 'edit_codigo_postal', 'edit_escola', 'edit_veiculo', 'edit_publico_alvo', 'edit_data_abertura_templo', 'edit_data_fechamento_templo', 'edit_campo_info_templo'];
+      fields.forEach(id => document.getElementById(id).value = '');
+      document.getElementById('imagem_perfil_preview').src = 'https://via.placeholder.com/200x200.png?text=Sem+Imagem';
+      document.getElementById('carrossel_grid').innerHTML = '';
+      document.getElementById('personalidades').innerHTML = '';
+      document.getElementById('associacoes').innerHTML = '';
+    }
+
+    // ##### FUNÇÃO CORRIGIDA #####
+    async function carregarEntidade() {
+        entidade_id = document.getElementById("entidadeSelect").value;
+        if (!entidade_id) {
+            limparFormulario();
+            return;
+        }
+        document.getElementById('conteudo-edicao').style.display = 'block';
+        const entidade = entidades.find(e => e.ID_TEMPLO == entidade_id);
+        if (!entidade) return;
+        
+        // --- A CORREÇÃO ESTÁ AQUI ---
+        // Agora, a imagem de perfil também usa a 'baseUrl' para montar a URL completa
+        if (entidade.IMAGEM_PERFIL_URL) {
+            document.getElementById('imagem_perfil_preview').src = `${baseUrl}${entidade.IMAGEM_PERFIL_URL}?t=${new Date().getTime()}`;
+        } else {
+            document.getElementById('imagem_perfil_preview').src = 'https://via.placeholder.com/200x200.png?text=Sem+Imagem';
+        }
+        // --- FIM DA CORREÇÃO ---
+
+        document.getElementById('edit_nome').value = entidade.NOME || '';
+        document.getElementById('edit_pais').value = entidade.PAIS || '';
+        document.getElementById('edit_estado').value = entidade.ESTADO || '';
+        document.getElementById('edit_municipio').value = entidade.MUNICIPIO || '';
+        document.getElementById('edit_codigo_postal').value = entidade.CODIGO_POSTAL || '';
+        document.getElementById('edit_escola').value = entidade.ESCOLA || '';
+        document.getElementById('edit_veiculo').value = entidade.VEICULO || '';
+        document.getElementById('edit_publico_alvo').value = (entidade.PUBLICO_ALVO !== null && entidade.PUBLICO_ALVO !== undefined) ? entidade.PUBLICO_ALVO : '';
+        document.getElementById('edit_data_abertura_templo').value = entidade.DATA_ABERTURA_TEMPLO || '';
+        document.getElementById('edit_data_fechamento_templo').value = entidade.DATA_FECHAMENTO_TEMPLO || '';
+        document.getElementById('edit_campo_info_templo').value = entidade.CAMPO_INFO_TEMPLO || '';
+
+        await carregarRelacoes();
+    }
+
+    // ##### FUNÇÃO ATUALIZADA #####
+    async function carregarRelacoes() {
+        if(!entidade_id) return;
+        const res = await fetch(`${baseUrl}/api/relations/templo/${entidade_id}`);
+        const data = await res.json();
+        
+        // --- LÓGICA ATUALIZADA PARA PERSONALIDADES ---
+        const divP = document.getElementById('personalidades');
+        divP.innerHTML = '';
+        (data.personalidades || []).forEach(p => {
+            // Verifica se a personalidade tem uma imagem de perfil.
+            const imagemHtml = p.IMAGEM_PERFIL_URL
+                ? `<img src="${baseUrl}${p.IMAGEM_PERFIL_URL}" alt="${p.NOME_PERSONALIDADE}" class="related-image">`
+                : ''; // Se não tiver, a variável fica com uma string vazia.
+
+            divP.innerHTML += `
+                <div class="related-card">
+                    ${imagemHtml}
+                    <div class="related-content">
+                        <h4>${p.NOME_PERSONALIDADE}</h4>
+                        <p>Função: ${p.FUNCAO || 'N/A'}</p>
+                        <button onclick="removerConexao('personalidade', ${p.ID_PERSONALIDADE})">Remover</button>
+                    </div>
+                </div>`;
+        });
+        
+        // --- LÓGICA ATUALIZADA PARA ASSOCIAÇÕES ---
+        const divA = document.getElementById('associacoes');
+        divA.innerHTML = '';
+        (data.associacoes || []).forEach(a => {
+            const imagemHtml = a.IMAGEM_PERFIL_URL
+                ? `<img src="${baseUrl}${a.IMAGEM_PERFIL_URL}" alt="${a.NOME_ASSOCIACAO}" class="related-image">`
+                : '';
+
+            divA.innerHTML += `
+                <div class="related-card">
+                    ${imagemHtml}
+                    <div class="related-content">
+                        <h4>${a.NOME_ASSOCIACAO}</h4>
+                        <button onclick="removerConexao('associacao', ${a.ID_ASSOCIACAO})">Remover</button>
+                    </div>
+                </div>`;
+        });
+        
+        // Lógica do carrossel (sem alterações)
+        const grid = document.getElementById('carrossel_grid');
+        grid.innerHTML = '';
+        (data.imagens_carrossel || []).forEach(img => {
+            grid.innerHTML += `<div class="carousel-card"><img src="${baseUrl}${img.URL_IMAGEM}" alt="${img.LEGENDA || ''}"><p>${img.LEGENDA || 'Sem legenda'}</p><button onclick="deletarImagemCarrossel(${img.ID_IMAGEM})">Apagar</button></div>`;
+        });
+    }
+
+    function getData() {
+        return {
+            NOME: document.getElementById('edit_nome').value, PAIS: document.getElementById('edit_pais').value, ESTADO: document.getElementById('edit_estado').value, MUNICIPIO: document.getElementById('edit_municipio').value,
+            CODIGO_POSTAL: document.getElementById('edit_codigo_postal').value, ESCOLA: document.getElementById('edit_escola').value, VEICULO: document.getElementById('edit_veiculo').value,
+            PUBLICO_ALVO: document.getElementById('edit_publico_alvo').value, DATA_ABERTURA_TEMPLO: document.getElementById('edit_data_abertura_templo').value || null,
+            DATA_FECHAMENTO_TEMPLO: document.getElementById('edit_data_fechamento_templo').value || null, CAMPO_INFO_TEMPLO: document.getElementById('edit_campo_info_templo').value
+        };
+    }
+    
+    async function atualizarEntidade() {
+        if (!entidade_id) return;
+        const res = await fetch(`${baseUrl}/api/templos/${entidade_id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(getData()) });
+        exibirMensagem(await res.json());
+        if (res.ok) {
+            const index = entidades.findIndex(e => e.ID_TEMPLO == entidade_id);
+            if(index !== -1) {
+                entidades[index] = { ...entidades[index], ...getData() };
+                document.querySelector(`#entidadeSelect option[value='${entidade_id}']`).textContent = `${getData().NOME} (ID: ${entidade_id})`;
+            }
+        }
+    }
+    
+    async function deletarEntidade() {
+        if (!entidade_id || !confirm("Tem certeza? Esta ação apagará o templo e todas as suas relações e imagens.")) return;
+        const res = await fetch(`${baseUrl}/api/templos/${entidade_id}`, { method: 'DELETE' });
+        exibirMensagem(await res.json());
+        if (res.ok) { limparFormulario(); await carregarTudo(); }
+    }
+    
+    async function buscarAdicionar(tipo) {
+        const select = document.getElementById(`busca_${tipo}`);
+        const id_rel = select.value;
+        if (!id_rel) return;
+        let funcao = (tipo === 'personalidade') ? document.getElementById('funcao_personalidade').value : null;
+        await adicionarConexao(tipo, id_rel, funcao);
+    }
+    
+    async function adicionarConexao(tipo, id_rel, funcao) {
+        if (!entidade_id) return;
+        const payload = { tipo, id_rel, funcao };
+        const res = await fetch(`${baseUrl}/api/relations/templo/${entidade_id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        exibirMensagem(await res.json());
+        if (res.ok) await carregarRelacoes();
+    }
+    
+    async function removerConexao(tipo, id_rel) {
+        if (!confirm(`Remover esta conexão de ${tipo}?`)) return;
+        const res = await fetch(`${baseUrl}/api/relations/templo/${entidade_id}?tipo=${tipo}&id_rel=${id_rel}`, { method: 'DELETE' });
+        exibirMensagem(await res.json());
+        if (res.ok) await carregarRelacoes();
+    }
+
+    async function atualizarImagemPerfil() {
+        if (!entidade_id) return;
+        const input = document.getElementById('upload_imagem_perfil');
+        if (input.files.length === 0) return;
+        const formData = new FormData();
+        formData.append('imagem', input.files[0]);
+        const res = await fetch(`${baseUrl}/api/templos/${entidade_id}/imagem_perfil`, { method: 'POST', body: formData });
+        const json = await res.json();
+        exibirMensagem(json);
+        if (res.ok) {
+            document.getElementById('imagem_perfil_preview').src = `${baseUrl}${json.url}?t=${new Date().getTime()}`;
+            input.value = '';
+        }
+    }
+
+    async function adicionarImagemCarrossel() {
+        if (!entidade_id) return;
+        const input = document.getElementById('upload_imagem_carrossel');
+        const legenda = document.getElementById('legenda_imagem_carrossel').value;
+        if (input.files.length === 0) return;
+        const formData = new FormData();
+        formData.append('imagem', input.files[0]);
+        formData.append('legenda', legenda);
+        const res = await fetch(`${baseUrl}/api/templos/${entidade_id}/imagens_carrossel`, { method: 'POST', body: formData });
+        exibirMensagem(await res.json());
+        if (res.ok) {
+            await carregarRelacoes();
+            input.value = '';
+            document.getElementById('legenda_imagem_carrossel').value = '';
+        }
+    }
+    
+    async function deletarImagemCarrossel(idImagem) {
+        if (!confirm("Apagar esta imagem do carrossel?")) return;
+        const res = await fetch(`${baseUrl}/api/imagens_carrossel/templo/${idImagem}`, { method: 'DELETE' });
+        exibirMensagem(await res.json());
+        if (res.ok) await carregarRelacoes();
+    }
+
+    function exibirMensagem(res) {
+        const el = document.getElementById("mensagem");
+        el.textContent = res.message || res.error;
+        el.className = res.message ? "success" : "error";
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    carregarTudo();
+  </script>
+</body>
+</html>

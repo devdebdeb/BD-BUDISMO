@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personalidades - Budismo na América Latina</title>
+
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        .table-wrapper {
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .data-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: var(--cor-fundo);
+        }
+        .placeholder-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--texto-secundario);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><a href="../default.html">Budismo na América Latina</a></h1>
+        <nav>
+            <ul>
+                <li><a href="../default.html">Início</a></li>
+                <li><a href="templos.html">Templos</a></li>
+                <li><a href="associacoes.html">Associações</a></li>
+                <li><a href="personalidades.html" class="active">Personalidades</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="visualizacaobi.html">Visualizações Power BI</a></li>
+                <li><a href="../Administração/login.html" class="btn btn-primary">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h2>Explorar Personalidades</h2>
+                <p>Pesquise e filtre as personalidades em nosso banco de dados.</p>
+            </div>
+
+            <section class="content-section">
+                <div class="form-container">
+                    <div class="filter-bar">
+                        <input type="text" id="nomeFilter" class="form-input" placeholder="Filtrar por nome...">
+                        <input type="text" id="paisFilter" class="form-input" placeholder="Filtrar por país...">
+                        <input type="text" id="nivelFilter" class="form-input" placeholder="Filtrar por nível/título...">
+                        <input type="text" id="racaFilter" class="form-input" placeholder="Filtrar por raça...">
+                        <select id="generoFilter" class="form-select">
+                            <option value="">Todos os Gêneros</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Não-binário">Não-binário</option>
+                        </select>
+                        <div class="form-input-group">
+                            <label for="nascimentoFilter">Nascimento a partir de:</label>
+                            <input type="date" id="nascimentoFilter" class="form-input">
+                        </div>
+                        <div class="form-input-group">
+                            <label for="morteFilter">Morte até:</label>
+                            <input type="date" id="morteFilter" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 20px;">
+                    <button id="exportBtn" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i> Exportar para Excel
+                    </button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Imagem</th>
+                                <th>Nome</th>
+                                <th>País de Origem</th>
+                                <th>Nível</th>
+                                <th>Gênero</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personalidades-body">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="loadingMessage" style="text-align: center; padding: 20px;">Carregando dados...</div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 BD Budismo. Todos os direitos reservados.</p>
+            <div class="logos">
+                <img src="../brasao_puc.png" alt="Brasão PUC">
+                <img src="../cnpq.png" alt="CNPq">
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const tableBody = document.getElementById('personalidades-body');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            const nomeFilter = document.getElementById('nomeFilter');
+            const paisFilter = document.getElementById('paisFilter');
+            const nivelFilter = document.getElementById('nivelFilter');
+            const racaFilter = document.getElementById('racaFilter');
+            const generoFilter = document.getElementById('generoFilter');
+            const nascimentoFilter = document.getElementById('nascimentoFilter');
+            const morteFilter = document.getElementById('morteFilter');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            const apiBaseUrl = 'http://127.0.0.1:5000'; 
+            let cachePersonalidades = [];
+
+            function removeAccents(str) {
+                if (!str) return "";
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            }
+
+            async function fetchAllData() {
+                loadingMessage.style.display = 'block';
+                tableBody.innerHTML = '';
+                const url = `${apiBaseUrl}/api/personalidades?all=true`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    cachePersonalidades = data.data;
+                    populateTable(cachePersonalidades);
+                } catch (error) {
+                    console.error('Erro ao buscar dados:', error);
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Erro ao carregar os dados.</td></tr>';
+                } finally {
+                    loadingMessage.style.display = 'none';
+                }
+            }
+
+            function populateTable(items) {
+                tableBody.innerHTML = '';
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma personalidade encontrada com esses filtros.</td></tr>';
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const imagemHtml = item.IMAGEM_PERFIL_URL 
+                        ? `<img src="${apiBaseUrl}${item.IMAGEM_PERFIL_URL}" alt="Imagem de ${item.NOME_PERSONALIDADE}" class="templo-image-thumbnail">`
+                        : `<div class="placeholder-image">${(item.NOME_PERSONALIDADE || '?').charAt(0)}</div>`;
+
+                    const row = `
+                        <tr>
+                            <td>${imagemHtml}</td>
+                            <td>${item.NOME_PERSONALIDADE || 'N/A'}</td>
+                            <td>${item.PAIS_ORIGEM_PERSONALIDADE || 'N/A'}</td>
+                            <td>${item.NIVEL || 'N/A'}</td>
+                            <td>${item.GENERO || 'N/A'}</td>
+                            <td><a href="detalhes.html?type=personalidade&id=${item.ID_PERSONALIDADE}" class="btn btn-secondary btn-sm">Ver Detalhes</a></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            }
+
+            function getFilteredData() {
+                const nomeFiltro = removeAccents(nomeFilter.value).toLowerCase();
+                const paisFiltro = removeAccents(paisFilter.value).toLowerCase();
+                const nivelFiltro = removeAccents(nivelFilter.value).toLowerCase();
+                const racaFiltro = removeAccents(racaFilter.value).toLowerCase();
+                const generoFiltro = generoFilter.value;
+                const nascimentoFiltro = nascimentoFilter.value;
+                const morteFiltro = morteFilter.value;
+
+                return cachePersonalidades.filter(p => {
+                    const matchNome = nomeFiltro ? (removeAccents(p.NOME_PERSONALIDADE) || '').toLowerCase().includes(nomeFiltro) : true;
+                    const matchPais = paisFiltro ? (removeAccents(p.PAIS_ORIGEM_PERSONALIDADE) || '').toLowerCase().includes(paisFiltro) : true;
+                    const matchNivel = nivelFiltro ? (removeAccents(p.NIVEL) || '').toLowerCase().includes(nivelFiltro) : true;
+                    const matchRaca = racaFiltro ? (removeAccents(p.RACA) || '').toLowerCase().includes(racaFiltro) : true;
+                    const matchGenero = generoFiltro ? p.GENERO === generoFiltro : true;
+                    const matchNascimento = nascimentoFiltro ? (p.DATA_NASCIMENTO && p.DATA_NASCIMENTO >= nascimentoFiltro) : true;
+                    const matchMorte = morteFiltro ? (p.DATA_MORTE && p.DATA_MORTE <= morteFiltro) : true;
+                    
+                    return matchNome && matchPais && matchNivel && matchRaca && matchGenero && matchNascimento && matchMorte;
+                });
+            }
+
+            function applyFilters() {
+                const filteredData = getFilteredData();
+                populateTable(filteredData);
+            }
+
+            // Adiciona Listeners para todos os filtros
+            [nomeFilter, paisFilter, nivelFilter, racaFilter].forEach(el => el.addEventListener('input', applyFilters));
+            [generoFilter, nascimentoFilter, morteFilter].forEach(el => el.addEventListener('change', applyFilters));
+
+            exportBtn.addEventListener('click', () => {
+                const dadosFiltrados = getFilteredData();
+
+                if (dadosFiltrados.length === 0) {
+                    alert("Nenhum dado para exportar com os filtros atuais.");
+                    return;
+                }
+
+                const dadosParaExportar = dadosFiltrados.map(p => ({
+                    'Nome': p.NOME_PERSONALIDADE,
+                    'País de Origem': p.PAIS_ORIGEM_PERSONALIDADE,
+                    'Nível/Título': p.NIVEL,
+                    'Gênero': p.GENERO,
+                    'Raça': p.RACA,
+                    'Data de Nascimento': p.DATA_NASCIMENTO,
+                    'Data de Morte': p.DATA_MORTE,
+                    'Biografia': p.CAMPO_INFO_PERSONALIDADE
+                }));
+
+                const worksheet = XLSX.utils.json_to_sheet(dadosParaExportar);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Personalidades");
+                XLSX.writeFile(workbook, "Personalidades_Filtradas.xlsx");
+            });
+
+            // Inicia o carregamento dos dados
+            fetchAllData();
+        });
+    </script>
+</body>
+</html>

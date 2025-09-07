@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Novo Produto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos base (idênticos aos das outras páginas de criação/edição) */
+    body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 30px; }
+    .container { max-width: 800px; margin: 20px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    h2 { text-align: center; color: #499a6e; margin-top: 0; margin-bottom: 15px; font-size: 2rem; }
+    p.subtitle { text-align: center; color: #555; margin-bottom: 40px; }
+    input, textarea, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+    button { background: #499a6e; color: white; border: none; cursor: pointer; font-weight: 500; font-size: 1.1rem; transition: background-color 0.3s ease; margin-top: 20px; }
+    button:hover { background: #3a7a5a; }
+    .error, .success { text-align: center; margin-top: 20px; padding: 10px; border-radius: 8px; font-weight: bold; }
+    .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb;}
+    .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
+    label { font-weight: 500; color: #333; font-size: 0.9rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-field { margin-bottom: 10px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .container { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Criar Novo Produto</h2>
+    <p class="subtitle">Preencha os campos abaixo. Campos marcados com * são obrigatórios.</p>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="nome_produto">* Nome do Produto</label>
+        <input type="text" id="nome_produto" />
+      </div>
+      <div class="form-field">
+        <label for="tipo_produto">* Tipo (ex: Livro, Estátua)</label>
+        <input type="text" id="tipo_produto" />
+      </div>
+      <div class="form-field">
+        <label for="data_lancamento">Data de Lançamento</label>
+        <input type="date" id="data_lancamento" />
+      </div>
+    </div>
+
+    <button onclick="criar()">Criar Produto e ir para Edição</button>
+    <div id="mensagem"></div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:5000';
+
+    async function criar() {
+      const data = {
+        NOME_PRODUTO: document.getElementById('nome_produto').value,
+        TIPO_PRODUTO: document.getElementById('tipo_produto').value,
+        DATA_LANCAMENTO: document.getElementById('data_lancamento').value
+      };
+      
+      const mensagemDiv = document.getElementById("mensagem");
+
+      try {
+        const res = await fetch(`${baseUrl}/api/produtos`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(json.error || 'Ocorreu um erro desconhecido.');
+        }
+
+        mensagemDiv.textContent = json.message;
+        mensagemDiv.className = 'success';
+        alert('Produto criado com sucesso! Redirecionando para a página de edição para adicionar relações.');
+        window.location.href = `../Edição/editar_produto.html?id=${json.id}`;
+
+      } catch (error) {
+        mensagemDiv.textContent = error.message;
+        mensagemDiv.className = 'error';
+      }
+    }
+  </script>
+</body>
+</html>

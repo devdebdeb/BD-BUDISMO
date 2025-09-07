@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Administrador</title>
+  <style>
+    body { font-family: Roboto, sans-serif; background: #f4f6f8; padding: 30px; }
+    h1, h2 { color: #499a6e; }
+    h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px;}
+    .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .secao { margin-top: 30px; }
+    button { padding: 10px 20px; margin: 5px; background: #499a6e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.3s; }
+    button:hover { background: #3a7a5a; }
+    .button-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .moderador-item { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+    .moderador-item span { flex-grow: 1; }
+    .moderador-item button { margin-left: 10px; padding: 5px 10px; font-size: 0.9rem; }
+    .stats-card { background-color: #f9f9f9; border: 1px solid #e9e9e9; border-radius: 8px; padding: 20px; margin-top: 15px; }
+    .stats-card p { margin: 8px 0; font-size: 1.1rem; color: #333; }
+    .stats-card strong { color: #499a6e; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bem-vindo(a), Administrador</h1>
+
+    <div class="secao">
+        <h2>Estatísticas do Sistema</h2>
+        <div class="stats-grid">
+            <div id="uploads-stats" class="stats-card">
+                <p>Calculando estatísticas de uploads...</p>
+            </div>
+            <div id="db-stats" class="stats-card">
+                <p>Calculando estatísticas do banco de dados...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="secao">
+      <h2>Gerenciar Moderadores</h2>
+      <div class="button-group">
+        <button onclick="location.href='criar_usuario.html'">Criar Novo Moderador</button>
+        <button onclick="listarModeradores()">Listar Moderadores</button>
+      </div>
+      <div id="lista-moderadores" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="secao">
+      <h2>Gerenciar Dados</h2>
+      <div class="button-group">
+        <button onclick="location.href='../Criação/criador.html'">Criar Entidades</button>
+        <button onclick="location.href='../Edição/editor.html'">Gerenciar Entidades</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario || usuario.tipo !== "admin") {
+      alert("Acesso negado. Redirecionando para login.");
+      window.location.href = "login.html";
+    }
+
+    const baseUrl = 'http://localhost:5000';
+
+    // --- FUNÇÕES DE ESTATÍSTICAS ---
+    async function carregarUploadStats() {
+        const statsContainer = document.getElementById('uploads-stats');
+        try {
+            const res = await fetch(`${baseUrl}/api/stats/uploads`);
+            const data = await res.json();
+            if (res.ok) {
+                statsContainer.innerHTML = `
+                    <p><strong>Espaço em Disco (Uploads)</strong></p>
+                    <p><strong>Total:</strong> ${data.total_size_str || 'N/A'}</p>
+                    <p><strong>Arquivos:</strong> ${data.file_count || 0}</p>
+                `;
+            } else {
+                statsContainer.innerHTML = `<p style="color: red;">Erro ao carregar stats de uploads.</p>`;
+            }
+        } catch (error) {
+            statsContainer.innerHTML = `<p style="color: red;">Falha de conexão (uploads).</p>`;
+        }
+    }
+
+    async function carregarDbStats() {
+        const statsContainer = document.getElementById('db-stats');
+        try {
+            const res = await fetch(`${baseUrl}/api/stats/database`);
+            const data = await res.json();
+            if (res.ok) {
+                statsContainer.innerHTML = `
+                    <p><strong>Espaço em Disco (BD)</strong></p>
+                    <p><strong>Tamanho Total:</strong> ${data.db_size_str || 'N/A'}</p>
+                `;
+            } else {
+                statsContainer.innerHTML = `<p style="color: red;">Erro ao carregar stats do BD.</p>`;
+            }
+        } catch (error) {
+            statsContainer.innerHTML = `<p style="color: red;">Falha de conexão (BD).</p>`;
+        }
+    }
+
+    // --- FUNÇÕES DE GERENCIAMENTO DE MODERADORES (RESTAURADAS) ---
+    async function listarModeradores() {
+      const res = await fetch(`${baseUrl}/api/usuarios?tipo=moderador`);
+      const data = await res.json();
+      const container = document.getElementById('lista-moderadores');
+      container.innerHTML = '<h3>Moderadores Atuais:</h3>';
+      if(data.length === 0) {
+        container.innerHTML += '<p>Nenhum moderador encontrado.</p>';
+        return;
+      }
+      data.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'moderador-item';
+        div.innerHTML = `
+          <span>${user.NOME} (ID: ${user.ID_USUARIO})</span>
+          <div>
+            <button onclick="editarUsuario(${user.ID_USUARIO}, '${user.NOME}')">Editar</button>
+            <button onclick="apagarUsuario(${user.ID_USUARIO})" style="background-color: #d9534f;">Apagar</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function editarUsuario(id, nome) {
+      localStorage.setItem('usuario_edicao', JSON.stringify({ id, nome }));
+      window.location.href = 'editar_usuario.html';
+    }
+
+    async function apagarUsuario(id) {
+      if (!confirm("Tem certeza que deseja apagar este moderador? Esta ação não pode ser desfeita.")) return;
+      const res = await fetch(`${baseUrl}/api/usuarios/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      alert(json.message || json.error);
+      listarModeradores();
+    }
+
+    // Chama as funções de estatísticas quando a página carregar
+    window.onload = () => {
+        carregarUploadStats();
+        carregarDbStats();
+    };
+  </script>
+</body>
+</html>
