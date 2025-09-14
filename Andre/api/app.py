@@ -221,7 +221,7 @@ def get_database_stats():
     finally:
         cursor.close()
         conn.close()
-
+        
 # --- 3. Rotas de Autenticação e Usuários (A parte da administração e moderação)-----------------------------------------------
 
 #Fazer o login
@@ -1665,6 +1665,82 @@ def deletar_imagem_carrossel_produto(id_imagem):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+# --- ROTAS CORRIGIDAS PARA OS CONTADORES DA PÁGINA INICIAL ---
+
+@app.route('/api/templos/total', methods=['GET'])
+def get_total_templos():
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        # Corrigido: nome da tabela para 'templo' (singular)
+        cursor.execute("SELECT COUNT(*) FROM templo")
+        total = cursor.fetchone()[0]
+        cursor.close()
+        return jsonify({'total': total})
+    except Exception as e:
+        print(f"Erro ao contar templos: {e}")
+        return jsonify({'error': 'Erro interno no servidor'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/associacoes/total', methods=['GET'])
+def get_total_associacoes():
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        # Corrigido: nome da tabela para 'associacao' (singular)
+        cursor.execute("SELECT COUNT(*) FROM associacao")
+        total = cursor.fetchone()[0]
+        cursor.close()
+        return jsonify({'total': total})
+    except Exception as e:
+        print(f"Erro ao contar associações: {e}")
+        return jsonify({'error': 'Erro interno no servidor'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/personalidades/total', methods=['GET'])
+def get_total_personalidades():
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        # Corrigido: nome da tabela para 'personalidade' (singular)
+        cursor.execute("SELECT COUNT(*) FROM personalidade")
+        total = cursor.fetchone()[0]
+        cursor.close()
+        return jsonify({'total': total})
+    except Exception as e:
+        print(f"Erro ao contar personalidades: {e}")
+        return jsonify({'error': 'Erro interno no servidor'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/produtos/total', methods=['GET'])
+def get_total_produtos():
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+         # Corrigido: nome da tabela para 'produto' (singular)
+        cursor.execute("SELECT COUNT(*) FROM produto")
+        total = cursor.fetchone()[0]
+        cursor.close()
+        return jsonify({'total': total})
+    except Exception as e:
+        print(f"Erro ao contar produtos: {e}")
+        return jsonify({'error': 'Erro interno no servidor'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# --- FIM DAS ROTAS PARA OS CONTADORES ---
 
 # --- 8. Bloco de Execução ---
 if __name__ == '__main__': 
